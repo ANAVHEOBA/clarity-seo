@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\AIResponse\AIResponseController;
+use App\Http\Controllers\Api\V1\AIResponse\BrandVoiceController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\Location\LocationController;
+use App\Http\Controllers\Api\V1\Review\ReviewController;
+use App\Http\Controllers\Api\V1\Sentiment\SentimentController;
 use App\Http\Controllers\Api\V1\Tenant\InvitationController;
 use App\Http\Controllers\Api\V1\Tenant\MemberController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
@@ -52,5 +56,66 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenants/{tenant}/locations/{location}', [LocationController::class, 'show'])->name('tenants.locations.show');
         Route::put('/tenants/{tenant}/locations/{location}', [LocationController::class, 'update'])->name('tenants.locations.update');
         Route::delete('/tenants/{tenant}/locations/{location}', [LocationController::class, 'destroy'])->name('tenants.locations.destroy');
+
+        // Reviews
+        Route::get('/tenants/{tenant}/reviews', [ReviewController::class, 'index'])->name('tenants.reviews.index');
+        Route::get('/tenants/{tenant}/reviews/stats', [ReviewController::class, 'stats'])->name('tenants.reviews.stats');
+        Route::get('/tenants/{tenant}/reviews/{review}', [ReviewController::class, 'show'])->name('tenants.reviews.show');
+
+        // Location Reviews
+        Route::get('/tenants/{tenant}/locations/{location}/reviews', [ReviewController::class, 'locationIndex'])->name('tenants.locations.reviews.index');
+        Route::get('/tenants/{tenant}/locations/{location}/reviews/stats', [ReviewController::class, 'locationStats'])->name('tenants.locations.reviews.stats');
+        Route::post('/tenants/{tenant}/locations/{location}/reviews/sync', [ReviewController::class, 'sync'])->name('tenants.locations.reviews.sync');
+
+        // Review Responses
+        Route::post('/tenants/{tenant}/reviews/{review}/response', [ReviewController::class, 'storeResponse'])->name('tenants.reviews.response.store');
+        Route::put('/tenants/{tenant}/reviews/{review}/response', [ReviewController::class, 'updateResponse'])->name('tenants.reviews.response.update');
+        Route::post('/tenants/{tenant}/reviews/{review}/response/publish', [ReviewController::class, 'publishResponse'])->name('tenants.reviews.response.publish');
+        Route::delete('/tenants/{tenant}/reviews/{review}/response', [ReviewController::class, 'destroyResponse'])->name('tenants.reviews.response.destroy');
+
+        // Sentiment Analysis - Tenant Level
+        Route::get('/tenants/{tenant}/sentiment', [SentimentController::class, 'stats'])->name('tenants.sentiment.stats');
+        Route::get('/tenants/{tenant}/sentiment/topics', [SentimentController::class, 'topics'])->name('tenants.sentiment.topics');
+        Route::get('/tenants/{tenant}/sentiment/keywords', [SentimentController::class, 'keywords'])->name('tenants.sentiment.keywords');
+        Route::get('/tenants/{tenant}/sentiment/emotions', [SentimentController::class, 'emotions'])->name('tenants.sentiment.emotions');
+        Route::get('/tenants/{tenant}/sentiment/trends', [SentimentController::class, 'trends'])->name('tenants.sentiment.trends');
+        Route::get('/tenants/{tenant}/sentiment/compare', [SentimentController::class, 'compare'])->name('tenants.sentiment.compare');
+        Route::get('/tenants/{tenant}/sentiment/export', [SentimentController::class, 'export'])->name('tenants.sentiment.export');
+
+        // Sentiment Analysis - Location Level
+        Route::get('/tenants/{tenant}/locations/{location}/sentiment', [SentimentController::class, 'locationStats'])->name('tenants.locations.sentiment.stats');
+        Route::get('/tenants/{tenant}/locations/{location}/sentiment/topics', [SentimentController::class, 'locationTopics'])->name('tenants.locations.sentiment.topics');
+        Route::get('/tenants/{tenant}/locations/{location}/sentiment/keywords', [SentimentController::class, 'locationKeywords'])->name('tenants.locations.sentiment.keywords');
+        Route::get('/tenants/{tenant}/locations/{location}/sentiment/emotions', [SentimentController::class, 'locationEmotions'])->name('tenants.locations.sentiment.emotions');
+        Route::get('/tenants/{tenant}/locations/{location}/sentiment/trends', [SentimentController::class, 'locationTrends'])->name('tenants.locations.sentiment.trends');
+        Route::post('/tenants/{tenant}/locations/{location}/sentiment/analyze', [SentimentController::class, 'analyzeLocation'])->name('tenants.locations.sentiment.analyze');
+
+        // Sentiment Analysis - Review Level
+        Route::get('/tenants/{tenant}/reviews/{review}/sentiment', [SentimentController::class, 'showReviewSentiment'])->name('tenants.reviews.sentiment.show');
+        Route::post('/tenants/{tenant}/reviews/{review}/analyze', [SentimentController::class, 'analyzeReview'])->name('tenants.reviews.sentiment.analyze');
+
+        // Brand Voice Templates
+        Route::get('/tenants/{tenant}/brand-voices', [BrandVoiceController::class, 'index'])->name('tenants.brand-voices.index');
+        Route::post('/tenants/{tenant}/brand-voices', [BrandVoiceController::class, 'store'])->name('tenants.brand-voices.store');
+        Route::get('/tenants/{tenant}/brand-voices/{brandVoice}', [BrandVoiceController::class, 'show'])->name('tenants.brand-voices.show');
+        Route::put('/tenants/{tenant}/brand-voices/{brandVoice}', [BrandVoiceController::class, 'update'])->name('tenants.brand-voices.update');
+        Route::delete('/tenants/{tenant}/brand-voices/{brandVoice}', [BrandVoiceController::class, 'destroy'])->name('tenants.brand-voices.destroy');
+
+        // AI Response - Tenant Level
+        Route::get('/tenants/{tenant}/ai-response/stats', [AIResponseController::class, 'stats'])->name('tenants.ai-response.stats');
+        Route::get('/tenants/{tenant}/ai-response/usage', [AIResponseController::class, 'usage'])->name('tenants.ai-response.usage');
+        Route::post('/tenants/{tenant}/reviews/ai-response/bulk', [AIResponseController::class, 'bulkGenerate'])->name('tenants.reviews.ai-response.bulk');
+
+        // AI Response - Location Level
+        Route::get('/tenants/{tenant}/locations/{location}/ai-response/stats', [AIResponseController::class, 'locationStats'])->name('tenants.locations.ai-response.stats');
+        Route::post('/tenants/{tenant}/locations/{location}/reviews/ai-response/bulk', [AIResponseController::class, 'bulkGenerateForLocation'])->name('tenants.locations.reviews.ai-response.bulk');
+
+        // AI Response - Review Level
+        Route::post('/tenants/{tenant}/reviews/{review}/ai-response', [AIResponseController::class, 'generate'])->name('tenants.reviews.ai-response.generate');
+        Route::post('/tenants/{tenant}/reviews/{review}/ai-response/regenerate', [AIResponseController::class, 'regenerate'])->name('tenants.reviews.ai-response.regenerate');
+        Route::get('/tenants/{tenant}/reviews/{review}/ai-response/history', [AIResponseController::class, 'history'])->name('tenants.reviews.ai-response.history');
+        Route::post('/tenants/{tenant}/reviews/{review}/response/approve', [AIResponseController::class, 'approve'])->name('tenants.reviews.response.approve');
+        Route::post('/tenants/{tenant}/reviews/{review}/response/reject', [AIResponseController::class, 'reject'])->name('tenants.reviews.response.reject');
+        Route::post('/tenants/{tenant}/reviews/{review}/response/suggestions', [AIResponseController::class, 'suggestions'])->name('tenants.reviews.response.suggestions');
     });
 });

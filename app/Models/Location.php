@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Location extends Model
 {
@@ -29,6 +30,9 @@ class Location extends Model
         'categories',
         'business_hours',
         'status',
+        'google_place_id',
+        'yelp_business_id',
+        'reviews_synced_at',
     ];
 
     /** @return array<string, string> */
@@ -39,6 +43,7 @@ class Location extends Model
             'business_hours' => 'array',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'reviews_synced_at' => 'datetime',
         ];
     }
 
@@ -47,8 +52,23 @@ class Location extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function hasGooglePlaceId(): bool
+    {
+        return ! empty($this->google_place_id);
+    }
+
+    public function hasYelpBusinessId(): bool
+    {
+        return ! empty($this->yelp_business_id);
     }
 }
