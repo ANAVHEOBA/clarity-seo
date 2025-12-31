@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\Location\LocationController;
+use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReportScheduleController;
+use App\Http\Controllers\Api\V1\ReportTemplateController;
 use App\Http\Controllers\Api\V1\Review\ReviewController;
 use App\Http\Controllers\Api\V1\Sentiment\SentimentController;
 use App\Http\Controllers\Api\V1\Tenant\InvitationController;
@@ -117,5 +120,28 @@ Route::prefix('v1')->group(function () {
         Route::post('/tenants/{tenant}/reviews/{review}/response/approve', [AIResponseController::class, 'approve'])->name('tenants.reviews.response.approve');
         Route::post('/tenants/{tenant}/reviews/{review}/response/reject', [AIResponseController::class, 'reject'])->name('tenants.reviews.response.reject');
         Route::post('/tenants/{tenant}/reviews/{review}/response/suggestions', [AIResponseController::class, 'suggestions'])->name('tenants.reviews.response.suggestions');
+
+        // Reports
+        Route::get('/tenants/{tenant}/reports', [ReportController::class, 'index'])->name('api.v1.reports.index');
+        Route::post('/tenants/{tenant}/reports', [ReportController::class, 'store'])->name('api.v1.reports.store');
+        Route::get('/tenants/{tenant}/reports/{report}', [ReportController::class, 'show'])->name('api.v1.reports.show');
+        Route::get('/tenants/{tenant}/reports/{report}/status', [ReportController::class, 'status'])->name('api.v1.reports.status');
+        Route::get('/tenants/{tenant}/reports/{report}/download', [ReportController::class, 'download'])->name('api.v1.reports.download');
+        Route::delete('/tenants/{tenant}/reports/{report}', [ReportController::class, 'destroy'])->name('api.v1.reports.destroy');
+
+        // Report Schedules
+        Route::get('/tenants/{tenant}/report-schedules', [ReportScheduleController::class, 'index'])->name('api.v1.report-schedules.index');
+        Route::post('/tenants/{tenant}/report-schedules', [ReportScheduleController::class, 'store'])->name('api.v1.report-schedules.store');
+        Route::get('/tenants/{tenant}/report-schedules/{reportSchedule}', [ReportScheduleController::class, 'show'])->name('api.v1.report-schedules.show');
+        Route::put('/tenants/{tenant}/report-schedules/{reportSchedule}', [ReportScheduleController::class, 'update'])->name('api.v1.report-schedules.update');
+        Route::post('/tenants/{tenant}/report-schedules/{reportSchedule}/toggle', [ReportScheduleController::class, 'toggle'])->name('api.v1.report-schedules.toggle');
+        Route::delete('/tenants/{tenant}/report-schedules/{reportSchedule}', [ReportScheduleController::class, 'destroy'])->name('api.v1.report-schedules.destroy');
+
+        // Report Templates
+        Route::get('/tenants/{tenant}/report-templates', [ReportTemplateController::class, 'index'])->name('api.v1.report-templates.index');
+        Route::post('/tenants/{tenant}/report-templates', [ReportTemplateController::class, 'store'])->name('api.v1.report-templates.store');
+        Route::get('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'show'])->name('api.v1.report-templates.show');
+        Route::put('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'update'])->name('api.v1.report-templates.update');
+        Route::delete('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'destroy'])->name('api.v1.report-templates.destroy');
     });
 });
