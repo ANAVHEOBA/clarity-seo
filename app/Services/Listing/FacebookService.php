@@ -45,7 +45,7 @@ class FacebookService
                 'fields' => 'id,name,access_token,category,location,phone,website,hours,single_line_address',
             ]);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 Log::error('Facebook API error: Failed to get pages', [
                     'status' => $response->status(),
                     'error' => $response->json('error'),
@@ -96,7 +96,7 @@ class FacebookService
                 ]),
             ]);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 Log::error('Facebook API error: Failed to get page details', [
                     'page_id' => $pageId,
                     'status' => $response->status(),
@@ -148,7 +148,7 @@ class FacebookService
 
             $response = Http::post($this->apiUrl($pageId), $updateData);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 Log::error('Facebook API error: Failed to update page', [
                     'page_id' => $pageId,
                     'status' => $response->status(),
@@ -173,7 +173,7 @@ class FacebookService
     {
         $pageId = $credential->getPageId();
 
-        if (! $pageId) {
+        if (!$pageId) {
             Log::error('No Facebook page ID configured', ['tenant_id' => $credential->tenant_id]);
 
             return null;
@@ -181,7 +181,7 @@ class FacebookService
 
         $pageData = $this->getPageDetails($pageId, $credential->access_token);
 
-        if (! $pageData) {
+        if (!$pageData) {
             return null;
         }
 
@@ -219,7 +219,7 @@ class FacebookService
 
         // Check for discrepancies
         $discrepancies = $this->detectDiscrepancies($location, $listing);
-        if (! empty($discrepancies)) {
+        if (!empty($discrepancies)) {
             $listing->setDiscrepancies($discrepancies);
         }
 
@@ -234,7 +234,7 @@ class FacebookService
         $pageId = $credential->getPageId();
         $pageAccessToken = $credential->metadata['page_access_token'] ?? $credential->access_token;
 
-        if (! $pageId) {
+        if (!$pageId) {
             return false;
         }
 
@@ -310,6 +310,7 @@ class FacebookService
             [
                 'tenant_id' => $tenant->id,
                 'platform' => PlatformCredential::PLATFORM_FACEBOOK,
+                'external_id' => $pageId,  // FIX: Include page_id to support multiple pages
             ],
             [
                 'access_token' => $accessToken,

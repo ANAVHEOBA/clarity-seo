@@ -212,10 +212,17 @@ class ReviewService
             $this->syncGoogleReviews($location);
         }
 
-        // Sync Facebook reviews if credentials exist
-        $facebookCredential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_FACEBOOK);
-        if ($facebookCredential && $facebookCredential->isValid()) {
-            app(FacebookReviewService::class)->syncFacebookReviews($location, $facebookCredential);
+        // Sync Facebook reviews if location has Facebook page ID
+        if ($location->hasFacebookPageId()) {
+            $facebookCredential = PlatformCredential::where('tenant_id', $location->tenant_id)
+                ->where('platform', PlatformCredential::PLATFORM_FACEBOOK)
+                ->where('external_id', $location->facebook_page_id)
+                ->where('is_active', true)
+                ->first();
+
+            if ($facebookCredential && $facebookCredential->isValid()) {
+                app(FacebookReviewService::class)->syncFacebookReviews($location, $facebookCredential);
+            }
         }
 
         // TODO: Add Yelp sync when API key is configured

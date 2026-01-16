@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -15,6 +14,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->string('platform'); // facebook, google, bing
+            $table->string('external_id')->nullable(); // page_id, place_id, etc.
             $table->text('access_token');
             $table->text('refresh_token')->nullable();
             $table->string('token_type')->default('Bearer');
@@ -24,8 +24,10 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'platform']);
+            // Unique constraint includes external_id to support multiple pages per tenant
+            $table->unique(['tenant_id', 'platform', 'external_id']);
             $table->index(['platform', 'is_active']);
+            $table->index('external_id');
         });
     }
 
