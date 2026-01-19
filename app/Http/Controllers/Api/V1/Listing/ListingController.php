@@ -184,6 +184,28 @@ class ListingController extends Controller
                 ->setStatusCode(Response::HTTP_CREATED);
         }
 
+        if ($validated['platform'] === 'youtube') {
+            // Update or create credential for YouTube
+            $credential = $tenant->credentials()->updateOrCreate(
+                ['platform' => 'youtube'],
+                [
+                    'external_id' => $validated['page_id'], // Storing Channel ID here
+                    'access_token' => $validated['access_token'],
+                    'refresh_token' => $validated['refresh_token'] ?? null,
+                    'expires_at' => isset($validated['expires_at']) ? \Carbon\Carbon::parse($validated['expires_at']) : now()->addHour(),
+                    'scopes' => $validated['scopes'] ?? ['https://www.googleapis.com/auth/youtube.force-ssl'],
+                    'is_active' => true,
+                    'metadata' => [
+                        'channel_id' => $validated['page_id'],
+                    ]
+                ]
+            );
+
+            return (new PlatformCredentialResource($credential))
+                ->response()
+                ->setStatusCode(Response::HTTP_CREATED);
+        }
+
         return response()->json([
             'message' => 'Platform not supported yet.',
         ], Response::HTTP_UNPROCESSABLE_ENTITY);

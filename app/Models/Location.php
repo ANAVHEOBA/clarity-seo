@@ -34,6 +34,7 @@ class Location extends Model
         'yelp_business_id',
         'facebook_page_id',
         'google_play_package_name',
+        'youtube_channel_id',
         'reviews_synced_at',
     ];
 
@@ -87,5 +88,10 @@ class Location extends Model
     public function hasGooglePlayPackageName(): bool
     {
         return !empty($this->google_play_package_name);
+    }
+
+    public function hasYouTubeChannelId(): bool
+    {
+        return !empty($this->youtube_channel_id);
     }
 }

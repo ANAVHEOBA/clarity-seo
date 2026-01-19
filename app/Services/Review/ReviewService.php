@@ -203,6 +203,18 @@ class ReviewService
             return $response->fresh();
         }
 
+        // Handle YouTube responses
+        if ($review->platform === PlatformCredential::PLATFORM_YOUTUBE) {
+            $credential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_YOUTUBE);
+            if ($credential && $credential->isValid()) {
+                $success = app(YouTubeReviewService::class)->replyToReview($review, $response->content, $credential);
+                if (!$success) {
+                    throw new \Exception('Failed to publish response to YouTube');
+                }
+                return $response->fresh();
+            }
+        }
+
         // For other platforms or if not published to platform, just mark as published locally
         if (!$response->isPublished()) {
             $response->publish();
@@ -238,6 +250,18 @@ class ReviewService
         // Sync Google Play Store reviews
         if ($location->hasGooglePlayPackageName()) {
             app(GooglePlayStoreService::class)->syncReviews($location);
+        }
+
+        // Sync YouTube reviews
+        if ($location->hasYouTubeChannelId()) {
+            $youtubeCredential = PlatformCredential::where('tenant_id', $location->tenant_id)
+                ->where('platform', PlatformCredential::PLATFORM_YOUTUBE)
+                ->where('is_active', true)
+                ->first();
+
+            if ($youtubeCredential && $youtubeCredential->isValid()) {
+                app(YouTubeReviewService::class)->syncReviews($location, $youtubeCredential);
+            }
         }
 
         // TODO: Add Yelp sync when API key is configured
