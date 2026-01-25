@@ -16,6 +16,8 @@ class Listing extends Model
 
     public const PLATFORM_GOOGLE = 'google';
 
+    public const PLATFORM_GOOGLE_MY_BUSINESS = 'google_my_business';
+
     public const PLATFORM_BING = 'bing';
 
     public const PLATFORM_GOOGLE_PLAY = 'google_play';
@@ -107,7 +109,7 @@ class Listing extends Model
 
     public function hasDiscrepancies(): bool
     {
-        return ! empty($this->discrepancies);
+        return !empty($this->discrepancies);
     }
 
     public function markAsSynced(): void

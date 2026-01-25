@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authorize Google Business Profile</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        .btn { background: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; margin-top: 20px; }
+        .btn:hover { background: #357ae8; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Connect to Google</h1>
+        <p>Click the button below to authorize Clarity SEO to manage your business profile.</p>
+        <a class="btn" href="https://accounts.google.com/o/oauth2/v2/auth?client_id=1040523144508-2ta575slckbnc6hsk75cd19b7ej0jigc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fapi.localmator.com%2Fapi%2Fauth%2Fgoogle%2Fcallback&state=eyJ0ZW5hbnRfaWQiOjF9&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile&response_type=code&access_type=offline&prompt=consent">
+            Authorize with Google
+        </a>
+    </div>
+</body>
+</html>

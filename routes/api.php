@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\Listing\FacebookConnectController;
+use App\Http\Controllers\Api\V1\Listing\GoogleMyBusinessController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\Location\LocationController;
 use App\Http\Controllers\Api\V1\ReportController;
@@ -25,6 +26,9 @@ use Illuminate\Support\Facades\Route;
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Public Google OAuth Callback (Specific URI requested)
+Route::get('/auth/google/callback', [GoogleMyBusinessController::class, 'callback'])->name('api.auth.google.callback');
 
 Route::prefix('v1')->group(function () {
     // Auth routes (guest)
@@ -49,6 +53,10 @@ Route::prefix('v1')->group(function () {
         
         // Facebook Connect
         Route::get('/tenants/{tenant}/facebook/connect', [FacebookConnectController::class, 'connect'])->name('api.v1.facebook.connect');
+
+        // Google My Business Connect
+        Route::get('/tenants/{tenant}/google/connect', [GoogleMyBusinessController::class, 'connect'])->name('api.v1.google.connect');
+        Route::post('/tenants/{tenant}/google/credentials', [GoogleMyBusinessController::class, 'storeCredential'])->name('api.v1.google.credentials.store');
 
         // Tenant Members
         Route::get('/tenants/{tenant}/members', [MemberController::class, 'index'])->name('tenants.members.index');

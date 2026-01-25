@@ -32,4 +32,25 @@ return [
         'service_account_json' => env('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google My Business API
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Google My Business (Business Profile) API OAuth
+    | used to manage business listings and locations.
+    |
+    */
+
+    'my_business' => [
+        'client_id' => env('GOOGLE_GMP_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_GMP_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_GMP_REDIRECT_URI'),
+        'scopes' => [
+            'https://www.googleapis.com/auth/business.manage',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile',
+        ],
+    ],
+
 ];

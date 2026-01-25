@@ -32,6 +32,8 @@ return [
         'pages_manage_engagement',  // Required for responding to reviews
         'pages_read_user_content',  // Required for reading reviews
         'business_management',
+        'instagram_basic',          // Required for reading Instagram profile info
+        'instagram_manage_comments', // Required for reading/replying to Instagram comments
     ],
 
 ];

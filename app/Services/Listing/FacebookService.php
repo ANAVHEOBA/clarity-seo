@@ -149,6 +149,7 @@ class FacebookService
                     'overall_star_rating',
                     'cover',
                     'picture',
+                    'instagram_business_account{id,username,profile_picture_url,followers_count}',
                 ]),
             ]);
 
@@ -169,6 +170,16 @@ class FacebookService
 
             return null;
         }
+    }
+
+    /**
+     * Get the linked Instagram Business Account ID for a page.
+     */
+    public function getLinkedInstagramAccount(string $pageId, string $accessToken): ?array
+    {
+        $details = $this->getPageDetails($pageId, $accessToken);
+        
+        return $details['instagram_business_account'] ?? null;
     }
 
     /**

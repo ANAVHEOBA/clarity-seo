@@ -182,6 +182,34 @@ class ReviewService
         $review = $response->review;
         $location = $review->location;
 
+        // Handle Google My Business responses (OAuth)
+        if ($review->platform === 'google' || $review->platform === PlatformCredential::PLATFORM_GOOGLE_MY_BUSINESS) {
+            $credential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_GOOGLE_MY_BUSINESS);
+
+            if ($credential && $credential->isValid()) {
+                // Determine the review ID format
+                // Local review external_id might be a hash (from Places API) or a real ID (from GMB API)
+                // If it's a hash, we can't reply via API easily unless we stored the resource name
+                // But if we synced via GMB API, external_id is the resource name.
+                
+                $reviewName = $review->external_id;
+                
+                // Basic check if it looks like a resource name (accounts/.../reviews/...)
+                if (str_contains($reviewName, 'accounts/')) {
+                    $success = app(\App\Services\Listing\GoogleMyBusinessService::class)
+                        ->replyToReview($reviewName, $response->content, $credential->access_token);
+
+                    if (!$success) {
+                        throw new \Exception('Failed to publish response to Google My Business');
+                    }
+                    return $response->fresh();
+                } else {
+                     \Log::warning('Cannot reply to Google review: Invalid ID format (likely from Places API fallback)', ['review_id' => $review->id]);
+                     // Fall through to mark as published locally but warn
+                }
+            }
+        }
+
         // Handle Facebook responses
         if ($review->platform === PlatformCredential::PLATFORM_FACEBOOK) {
             // Get the correct credential for this review's Facebook page
@@ -255,7 +283,12 @@ class ReviewService
             'youtube' => 0,
         ];
 
-        if ($location->hasGooglePlaceId()) {
+        // 1. Try Google My Business API (OAuth) first - It's better (All reviews + Replying)
+        $gmbCredential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_GOOGLE_MY_BUSINESS);
+        if ($gmbCredential && $gmbCredential->isValid()) {
+             $counts['google'] = $this->syncGoogleReviewsViaApi($location, $gmbCredential);
+        } elseif ($location->hasGooglePlaceId()) {
+            // 2. Fallback to Google Places API (Public Key) - Limited to top 5
             $counts['google'] = $this->syncGoogleReviews($location);
         }
 
@@ -297,6 +330,64 @@ class ReviewService
         $location->update(['reviews_synced_at' => now()]);
 
         return $counts;
+    }
+
+    protected function syncGoogleReviewsViaApi(Location $location, PlatformCredential $credential): int
+    {
+        // We need the location name (accounts/{id}/locations/{id})
+        // If the location was synced via GMB, it might be in listing external_id or credential metadata
+        // For now, let's assume the credential's metadata has the location name OR we need to find it.
+        
+        $listing = \App\Models\Listing::where('location_id', $location->id)
+            ->where('platform', \App\Models\Listing::PLATFORM_GOOGLE_MY_BUSINESS)
+            ->first();
+
+        $locationName = $listing?->external_id ?? $credential->metadata['location_name'] ?? null;
+
+        if (!$locationName) {
+            \Log::warning('Cannot sync GMB reviews: Missing location name (external_id)', ['location_id' => $location->id]);
+            return 0;
+        }
+
+        $service = app(\App\Services\Listing\GoogleMyBusinessService::class);
+        $reviewsData = $service->getReviews($locationName, $credential->access_token);
+
+        if (!$reviewsData || !isset($reviewsData['reviews'])) {
+            return 0;
+        }
+
+        $syncedCount = 0;
+        foreach ($reviewsData['reviews'] as $reviewData) {
+            // Map GMB API format to DB
+            $starRating = match($reviewData['starRating'] ?? '') {
+                'ONE' => 1, 'TWO' => 2, 'THREE' => 3, 'FOUR' => 4, 'FIVE' => 5,
+                default => 0
+            };
+
+            if ($starRating === 0) continue;
+
+            Review::updateOrCreate(
+                [
+                    'location_id' => $location->id,
+                    'platform' => 'google', // Normalize to 'google'
+                    'external_id' => $reviewData['name'], // Store the full resource name for replying
+                ],
+                [
+                    'author_name' => $reviewData['reviewer']['displayName'] ?? 'Anonymous',
+                    'author_image' => $reviewData['reviewer']['profilePhotoUrl'] ?? null,
+                    'rating' => $starRating,
+                    'content' => $reviewData['comment'] ?? null,
+                    'published_at' => isset($reviewData['createTime'])
+                        ? \Carbon\Carbon::parse($reviewData['createTime'])
+                        : now(),
+                    'metadata' => $reviewData,
+                ]
+            );
+            $syncedCount++;
+        }
+        
+        \Log::info('Google GMB API reviews synced', ['count' => $syncedCount, 'location_id' => $location->id]);
+        return $syncedCount;
     }
 
     protected function syncGoogleReviews(Location $location): int

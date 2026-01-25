@@ -18,6 +18,8 @@ class PlatformCredential extends Model
 
     public const PLATFORM_GOOGLE = 'google';
 
+    public const PLATFORM_GOOGLE_MY_BUSINESS = 'google_my_business';
+
     public const PLATFORM_YOUTUBE = 'youtube';
 
     public const PLATFORM_BING = 'bing';
