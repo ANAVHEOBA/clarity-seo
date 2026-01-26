@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AIResponse\BrandVoiceController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\V1\Automation\AutomationWorkflowController;
 use App\Http\Controllers\Api\V1\Listing\FacebookConnectController;
 use App\Http\Controllers\Api\V1\Listing\GoogleMyBusinessController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
@@ -175,5 +176,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'show'])->name('api.v1.report-templates.show');
         Route::put('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'update'])->name('api.v1.report-templates.update');
         Route::delete('/tenants/{tenant}/report-templates/{reportTemplate}', [ReportTemplateController::class, 'destroy'])->name('api.v1.report-templates.destroy');
+
+        // Automation Workflows
+        Route::get('/tenants/{tenant}/automation/workflows', [AutomationWorkflowController::class, 'index'])->name('api.v1.automation.workflows.index');
+        Route::post('/tenants/{tenant}/automation/workflows', [AutomationWorkflowController::class, 'store'])->name('api.v1.automation.workflows.store');
+        Route::get('/tenants/{tenant}/automation/workflows/{workflow}', [AutomationWorkflowController::class, 'show'])->name('api.v1.automation.workflows.show');
+        Route::put('/tenants/{tenant}/automation/workflows/{workflow}', [AutomationWorkflowController::class, 'update'])->name('api.v1.automation.workflows.update');
+        Route::delete('/tenants/{tenant}/automation/workflows/{workflow}', [AutomationWorkflowController::class, 'destroy'])->name('api.v1.automation.workflows.destroy');
+        Route::post('/tenants/{tenant}/automation/workflows/{workflow}/execute', [AutomationWorkflowController::class, 'execute'])->name('api.v1.automation.workflows.execute');
+        Route::post('/tenants/{tenant}/automation/workflows/{workflow}/toggle', [AutomationWorkflowController::class, 'toggle'])->name('api.v1.automation.workflows.toggle');
+        Route::get('/tenants/{tenant}/automation/workflows/{workflow}/executions', [AutomationWorkflowController::class, 'executions'])->name('api.v1.automation.workflows.executions');
+        
+        // Automation Stats & Metadata
+        Route::get('/tenants/{tenant}/automation/stats', [AutomationWorkflowController::class, 'stats'])->name('api.v1.automation.stats');
+        Route::get('/automation/actions', [AutomationWorkflowController::class, 'availableActions'])->name('api.v1.automation.actions');
+        Route::get('/automation/triggers', [AutomationWorkflowController::class, 'availableTriggers'])->name('api.v1.automation.triggers');
     });
 });

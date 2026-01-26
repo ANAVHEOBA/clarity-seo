@@ -40,8 +40,16 @@ class ReviewService
 
     protected function applyFilters(Builder $query, array $filters): LengthAwarePaginator
     {
-        if (isset($filters['platform'])) $query->where('platform', $filters['platform']);
-        if (isset($filters['rating'])) $query->where('rating', $filters['rating']);
+        if (isset($filters['platform'])) {
+            $platform = $filters['platform'];
+            // Normalize platform names
+            if ($platform === PlatformCredential::PLATFORM_GOOGLE_MY_BUSINESS) {
+                $platform = 'google';
+            }
+            $query->where('platform', $platform);
+        }
+
+        if (isset($filters['rating'])) {
         if (isset($filters['min_rating'])) $query->where('rating', '>=', $filters['min_rating']);
         if (isset($filters['has_response'])) {
             $filters['has_response'] === 'true' || $filters['has_response'] === true ? $query->whereHas('response') : $query->whereDoesntHave('response');
