@@ -50,10 +50,17 @@ class ReviewService
         }
 
         if (isset($filters['rating'])) {
-        if (isset($filters['min_rating'])) $query->where('rating', '>=', $filters['min_rating']);
+            $query->where('rating', $filters['rating']);
+        }
+        
+        if (isset($filters['min_rating'])) {
+            $query->where('rating', '>=', $filters['min_rating']);
+        }
+
         if (isset($filters['has_response'])) {
             $filters['has_response'] === 'true' || $filters['has_response'] === true ? $query->whereHas('response') : $query->whereDoesntHave('response');
         }
+
         if (isset($filters['sentiment'])) {
             $sentimentValue = $filters['sentiment'];
             $query->where(function ($q) use ($sentimentValue) {
@@ -65,6 +72,7 @@ class ReviewService
                     });
             });
         }
+
         if (isset($filters['search'])) $query->where('content', 'like', "%{$filters['search']}%");
         if (isset($filters['from'])) $query->whereDate('published_at', '>=', $filters['from']);
         if (isset($filters['to'])) $query->whereDate('published_at', '<=', $filters['to']);

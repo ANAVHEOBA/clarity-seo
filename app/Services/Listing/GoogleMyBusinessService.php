@@ -361,14 +361,25 @@ class GoogleMyBusinessService
     public function uploadMedia(string $locationName, string $mediaUrl, string $accessToken, string $category = 'ADDITIONAL'): ?array
     {
         try {
-            $url = "https://mybusiness.googleapis.com/v4/{$locationName}/media";
-            $response = Http::withToken($accessToken)->post($url, [
-                'sourceUrl' => $mediaUrl,
-                'locationAssociation' => ['category' => $category],
-                'mediaFormat' => 'PHOTO',
+            $url = "https://businessprofile.googleapis.com/v1/{$locationName}/media";
+
+            $response = Http::withToken($accessToken)
+                ->post($url, [
+                    'mediaFormat' => 'PHOTO',
+                    'sourceUrl' => $mediaUrl,
+                    'locationAssociation' => [
+                        'category' => $category
+                    ]
+                ]);
+
+            Log::info('GMB Media upload response', [
+                'response' => $response->json(),
+                'status' => $response->status(),
             ]);
+
             return $response->successful() ? $response->json() : null;
-        } catch (ConnectionException $e) {
+        } catch (\Exception $e) {
+            Log::error('GMB Media upload error', ['error' => $e->getMessage()]);
             return null;
         }
     }
