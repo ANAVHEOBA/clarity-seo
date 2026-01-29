@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 class ListingService
 {
     public function __construct(
-        protected FacebookService $facebookService
+        protected FacebookService $facebookService,
+        protected GoogleMyBusinessService $googleMyBusinessService
     ) {}
 
     /**
@@ -85,6 +86,7 @@ class ListingService
 
         return match ($platform) {
             Listing::PLATFORM_FACEBOOK => $this->facebookService->syncListing($location, $credential),
+            Listing::PLATFORM_GOOGLE_MY_BUSINESS => $this->googleMyBusinessService->syncListing($location, $credential),
             default => null,
         };
     }
@@ -119,7 +121,7 @@ class ListingService
 
         $platforms = [
             Listing::PLATFORM_FACEBOOK,
-            // Add more platforms here as they are implemented
+            Listing::PLATFORM_GOOGLE_MY_BUSINESS,
         ];
 
         foreach ($platforms as $platform) {

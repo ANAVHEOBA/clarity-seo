@@ -550,39 +550,94 @@ class AutomationIntegrationTest extends TestCase
         ]);
     }
 
-    public function test_workflow_execution_logs_are_created(): void
-    {
-        $workflow = AutomationWorkflow::factory()->create([
-            'tenant_id' => $this->tenant->id,
-            'created_by' => $this->user->id,
-            'trigger_type' => AutomationWorkflow::TRIGGER_REVIEW_RECEIVED,
-            'actions' => [
-                [
-                    'type' => AutomationWorkflow::ACTION_ADD_TAG,
-                    'config' => [
-                        'tags' => ['test_tag'],
+        public function test_workflow_execution_logs_are_created(): void
+
+        {
+
+            $workflow = AutomationWorkflow::factory()->create([
+
+                'tenant_id' => $this->tenant->id,
+
+                'created_by' => $this->user->id,
+
+                'trigger_type' => AutomationWorkflow::TRIGGER_REVIEW_RECEIVED,
+
+                'actions' => [
+
+                    [
+
+                        'type' => AutomationWorkflow::ACTION_ADD_TAG,
+
+                        'config' => [
+
+                            'tags' => ['test_tag'],
+
+                        ],
+
                     ],
+
                 ],
-            ],
-        ]);
 
-        $review = Review::factory()->create([
-            'location_id' => $this->location->id,
-            'platform' => 'google',
-            'rating' => 4,
-        ]);
+            ]);
 
-        // Check that various log levels were created
-        $this->assertDatabaseHas('automation_logs', [
-            'workflow_id' => $workflow->id,
-            'level' => 'info',
-            'message' => 'Execution started',
-        ]);
+    
 
-        $this->assertDatabaseHas('automation_logs', [
-            'workflow_id' => $workflow->id,
-            'level' => 'info',
-            'message' => 'Execution completed successfully',
-        ]);
+            $review = Review::factory()->create([
+
+                'location_id' => $this->location->id,
+
+                'platform' => 'google',
+
+                'rating' => 4,
+
+            ]);
+
+    
+
+            // Check that various log levels were created
+
+            $this->assertDatabaseHas('automation_logs', [
+
+                'workflow_id' => $workflow->id,
+
+                'level' => 'info',
+
+                'message' => 'Execution started',
+
+            ]);
+
+    
+
+            $this->assertDatabaseHas('automation_logs', [
+
+                'workflow_id' => $workflow->id,
+
+                'level' => 'info',
+
+                'message' => 'Execution completed successfully',
+
+            ]);
+
+        }
+
+    
+
+        public function test_schedule_is_registered(): void
+
+        {
+
+            $this->artisan('schedule:list')
+
+                ->assertSuccessful()
+
+                ->expectsOutputToContain('app:fetch-reviews')
+
+                ->expectsOutputToContain('automation:run')
+
+                ->expectsOutputToContain('app:send-scheduled-reports');
+
+        }
+
     }
-}
+
+    
