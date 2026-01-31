@@ -15,6 +15,20 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Embed Widget JS
+Route::get('/embed/showcase.js', function () {
+    $path = public_path('embed/showcase.js');
+    
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    return response()->file($path, [
+        'Content-Type' => 'application/javascript',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+})->name('embed.showcase');
+
 // Facebook UI Routes
 Route::get('/facebook/setup', [FacebookWebController::class, 'index'])->name('facebook.index');
 Route::get('/facebook/auth', [FacebookWebController::class, 'redirect'])->name('facebook.auth');

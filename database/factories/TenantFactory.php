@@ -20,6 +20,24 @@ class TenantFactory extends Factory
             'name' => $name,
             'slug' => Str::slug($name),
             'description' => fake()->optional()->sentence(),
+            'plan' => 'free',
+            'white_label_enabled' => false,
         ];
+    }
+
+    public function premium(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'plan' => 'premium',
+            'white_label_enabled' => true,
+        ]);
+    }
+
+    public function enterprise(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'plan' => 'enterprise',
+            'white_label_enabled' => true,
+        ]);
     }
 }

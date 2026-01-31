@@ -36,6 +36,7 @@ class Location extends Model
         'google_play_package_name',
         'youtube_channel_id',
         'reviews_synced_at',
+        'embed_key',
     ];
 
     /** @return array<string, string> */
@@ -93,5 +94,18 @@ class Location extends Model
     public function hasYouTubeChannelId(): bool
     {
         return !empty($this->youtube_channel_id);
+    }
+
+    public function generateEmbedKey(): string
+    {
+        $this->embed_key = \Illuminate\Support\Str::random(32);
+        $this->save();
+
+        return $this->embed_key;
+    }
+
+    public function hasEmbedKey(): bool
+    {
+        return !empty($this->embed_key);
     }
 }

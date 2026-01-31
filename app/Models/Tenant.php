@@ -19,7 +19,17 @@ class Tenant extends Model
         'slug',
         'description',
         'logo',
+        'plan',
+        'white_label_enabled',
     ];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'white_label_enabled' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -102,5 +112,15 @@ class Tenant extends Model
     public function canDelete(User $user): bool
     {
         return $this->isOwner($user);
+    }
+
+    public function isWhiteLabelEnabled(): bool
+    {
+        return $this->white_label_enabled === true;
+    }
+
+    public function isPremium(): bool
+    {
+        return in_array($this->plan, ['premium', 'enterprise']);
     }
 }

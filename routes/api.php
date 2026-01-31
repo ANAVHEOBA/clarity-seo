@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\Automation\AutomationWorkflowController;
+use App\Http\Controllers\Api\V1\Embed\EmbedController;
 use App\Http\Controllers\Api\V1\Listing\FacebookConnectController;
 use App\Http\Controllers\Api\V1\Listing\GoogleMyBusinessController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
@@ -45,6 +46,8 @@ Route::prefix('v1')->group(function () {
     // Facebook Connect Routes (Public for callback, or protected for connect)
     Route::get('/facebook/callback', [FacebookConnectController::class, 'callback'])->name('api.v1.facebook.callback');
 
+    // Public Embed Routes
+    Route::get('/embed/{embedKey}/reviews', [EmbedController::class, 'getReviews'])->name('api.v1.embed.reviews');
 
     // Authenticated routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -191,5 +194,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/tenants/{tenant}/automation/stats', [AutomationWorkflowController::class, 'stats'])->name('api.v1.automation.stats');
         Route::get('/automation/actions', [AutomationWorkflowController::class, 'availableActions'])->name('api.v1.automation.actions');
         Route::get('/automation/triggers', [AutomationWorkflowController::class, 'availableTriggers'])->name('api.v1.automation.triggers');
+
+        // Embed Widget
+        Route::get('/tenants/{tenant}/embed/code', [EmbedController::class, 'generateCode'])->name('api.v1.embed.code');
+        Route::get('/tenants/{tenant}/locations/{location}/embed/code', [EmbedController::class, 'generateCode'])->name('api.v1.embed.location.code');
+        Route::get('/tenants/{tenant}/locations/{location}/embed/regenerate', [EmbedController::class, 'regenerateKey'])->name('api.v1.embed.regenerate');
     });
 });
