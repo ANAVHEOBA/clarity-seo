@@ -29,6 +29,11 @@ Route::get('/embed/showcase.js', function () {
     ]);
 })->name('embed.showcase');
 
+// Embed Preview Page
+Route::get('/embed/preview/{embedKey}', function ($embedKey) {
+    return view('embed.preview', ['embedKey' => $embedKey]);
+})->name('embed.preview');
+
 // Facebook UI Routes
 Route::get('/facebook/setup', [FacebookWebController::class, 'index'])->name('facebook.index');
 Route::get('/facebook/auth', [FacebookWebController::class, 'redirect'])->name('facebook.auth');

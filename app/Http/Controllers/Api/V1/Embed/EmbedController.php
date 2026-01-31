@@ -78,7 +78,7 @@ class EmbedController extends Controller
         ]);
     }
 
-    public function getReviews(Request $request, string $embedKey): JsonResponse
+    public function getReviews(Request $request, string $embedKey)
     {
         $location = Location::with('tenant')->where('embed_key', $embedKey)->first();
 
@@ -87,6 +87,8 @@ class EmbedController extends Controller
         }
 
         $limit = min((int) $request->query('limit', 10), 50);
+        $theme = $request->query('theme', 'light');
+        $layout = $request->query('layout', 'list');
 
         $reviews = $location->reviews()
             ->orderByDesc('rating')
@@ -97,16 +99,16 @@ class EmbedController extends Controller
         $tenant = $location->tenant;
         $showLogo = ! $tenant->isWhiteLabelEnabled();
 
-        return response()->json([
-            'reviews' => EmbedReviewResource::collection($reviews),
-            'location' => [
-                'name' => $location->name,
-            ],
-            'branding' => [
-                'show_logo' => $showLogo,
-                'logo_url' => $showLogo ? url('/images/logo.png') : null,
-            ],
-        ]);
+        // Return server-rendered HTML instead of JSON
+        return response()->view('embed.showcase', [
+            'reviews' => $reviews,
+            'location' => $location,
+            'showLogo' => $showLogo,
+            'theme' => $theme,
+            'layout' => $layout,
+        ])->header('Content-Type', 'text/html')
+          ->header('X-Frame-Options', 'ALLOWALL')
+          ->header('Access-Control-Allow-Origin', '*');
     }
 
     protected function generateEmbedScript(string $embedKey, string $theme = 'light', string $layout = 'list'): string
