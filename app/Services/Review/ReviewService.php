@@ -244,10 +244,42 @@ class ReviewService
             $starRating = match($reviewData['starRating'] ?? '') { 'ONE' => 1, 'TWO' => 2, 'THREE' => 3, 'FOUR' => 4, 'FIVE' => 5, default => 0 };
             if ($starRating === 0) continue;
 
-            Review::updateOrCreate(
+            $review = Review::updateOrCreate(
                 ['location_id' => $location->id, 'platform' => 'google', 'external_id' => $reviewData['name']],
                 ['author_name' => $reviewData['reviewer']['displayName'] ?? 'Anonymous', 'author_image' => $reviewData['reviewer']['profilePhotoUrl'] ?? null, 'rating' => $starRating, 'content' => $reviewData['comment'] ?? null, 'published_at' => isset($reviewData['createTime']) ? \Carbon\Carbon::parse($reviewData['createTime']) : now(), 'metadata' => $reviewData]
             );
+            
+            // Sync reviewReply if it exists on GMB
+            if (isset($reviewData['reviewReply']['comment'])) {
+                $replyComment = $reviewData['reviewReply']['comment'];
+                $replyUpdateTime = isset($reviewData['reviewReply']['updateTime']) 
+                    ? \Carbon\Carbon::parse($reviewData['reviewReply']['updateTime']) 
+                    : now();
+                
+                // Check if we already have this response
+                if (!$review->response) {
+                    // Create response record synced from GMB
+                    $review->response()->create([
+                        'user_id' => null, // System synced, no specific user
+                        'content' => $replyComment,
+                        'status' => 'published',
+                        'published_at' => $replyUpdateTime,
+                        'platform_synced' => true,
+                        'ai_generated' => false,
+                    ]);
+                } else {
+                    // Update if the reply changed on GMB
+                    $existingResponse = $review->response;
+                    if ($existingResponse->content !== $replyComment) {
+                        $existingResponse->update([
+                            'content' => $replyComment,
+                            'published_at' => $replyUpdateTime,
+                            'platform_synced' => true,
+                        ]);
+                    }
+                }
+            }
+            
             $syncedCount++;
         }
         return $syncedCount;
