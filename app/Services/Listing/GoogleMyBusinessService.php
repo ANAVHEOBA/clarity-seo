@@ -269,9 +269,36 @@ class GoogleMyBusinessService
     {
         try {
             $url = "https://mybusiness.googleapis.com/v4/{$reviewName}/reply";
-            $response = Http::withToken($accessToken)->post($url, ['comment' => $reply]);
-            return $response->successful();
+            
+            Log::info('Attempting to reply to Google review', [
+                'url' => $url,
+                'reviewName' => $reviewName,
+                'reply' => $reply,
+            ]);
+            
+            // Google My Business API requires PUT method for updateReply
+            $response = Http::withToken($accessToken)->put($url, [
+                'comment' => $reply
+            ]);
+            
+            if (!$response->successful()) {
+                Log::error('Failed to reply to Google review', [
+                    'status' => $response->status(),
+                    'error' => $response->json(),
+                    'body' => $response->body(),
+                ]);
+                return false;
+            }
+            
+            Log::info('Successfully replied to Google review', [
+                'response' => $response->json(),
+            ]);
+            
+            return true;
         } catch (ConnectionException $e) {
+            Log::error('Connection error replying to Google review', [
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }
