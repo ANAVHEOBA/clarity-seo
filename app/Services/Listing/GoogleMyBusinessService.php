@@ -383,32 +383,190 @@ class GoogleMyBusinessService
     }
 
     /**
-     * Upload a photo to a location.
+     * Upload a photo to a location from URL.
+     * 
+     * @param string $locationName The location resource name (e.g., accounts/{accountId}/locations/{locationId})
+     * @param string $mediaUrl Publicly accessible URL of the image
+     * @param string $accessToken Valid access token
+     * @param string $category Category for the photo (COVER, PROFILE, LOGO, EXTERIOR, INTERIOR, PRODUCT, AT_WORK, FOOD_AND_DRINK, MENU, COMMON_AREA, ROOMS, TEAMS, ADDITIONAL)
+     * @param string $mediaFormat Format of media (PHOTO or VIDEO)
+     * @return array|null The created media item or null on failure
      */
-    public function uploadMedia(string $locationName, string $mediaUrl, string $accessToken, string $category = 'ADDITIONAL'): ?array
+    public function uploadMedia(
+        string $locationName, 
+        string $mediaUrl, 
+        string $accessToken, 
+        string $category = 'ADDITIONAL',
+        string $mediaFormat = 'PHOTO'
+    ): ?array
     {
         try {
-            $url = "https://businessprofile.googleapis.com/v1/{$locationName}/media";
+            // Use the correct v4 API endpoint
+            $url = "https://mybusiness.googleapis.com/v4/{$locationName}/media";
 
-            $response = Http::withToken($accessToken)
-                ->post($url, [
-                    'mediaFormat' => 'PHOTO',
-                    'sourceUrl' => $mediaUrl,
-                    'locationAssociation' => [
-                        'category' => $category
-                    ]
-                ]);
+            $payload = [
+                'mediaFormat' => $mediaFormat,
+                'sourceUrl' => $mediaUrl,
+                'locationAssociation' => [
+                    'category' => $category
+                ]
+            ];
 
-            Log::info('GMB Media upload response', [
-                'response' => $response->json(),
-                'status' => $response->status(),
+            Log::info('GMB Media upload request', [
+                'url' => $url,
+                'payload' => $payload,
             ]);
 
-            return $response->successful() ? $response->json() : null;
+            $response = Http::withToken($accessToken)
+                ->post($url, $payload);
+
+            if (!$response->successful()) {
+                Log::error('GMB Media upload failed', [
+                    'status' => $response->status(),
+                    'error' => $response->json(),
+                    'body' => $response->body(),
+                ]);
+                return null;
+            }
+
+            Log::info('GMB Media upload success', [
+                'response' => $response->json(),
+            ]);
+
+            return $response->json();
         } catch (\Exception $e) {
-            Log::error('GMB Media upload error', ['error' => $e->getMessage()]);
+            Log::error('GMB Media upload exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return null;
         }
+    }
+
+    /**
+     * Upload media from bytes (3-step process).
+     * Step 1: Start the upload to get a resource name.
+     */
+    public function startMediaUpload(string $locationName, string $accessToken): ?string
+    {
+        try {
+            $url = "https://mybusiness.googleapis.com/v4/{$locationName}/media:startUpload";
+            
+            $response = Http::withToken($accessToken)->post($url);
+
+            if (!$response->successful()) {
+                Log::error('GMB Start media upload failed', [
+                    'status' => $response->status(),
+                    'error' => $response->json(),
+                ]);
+                return null;
+            }
+
+            return $response->json('resourceName');
+        } catch (\Exception $e) {
+            Log::error('GMB Start media upload exception', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Step 2: Upload the actual bytes using the resource name.
+     */
+    public function uploadMediaBytes(string $resourceName, string $filePath, string $accessToken): bool
+    {
+        try {
+            $url = "https://mybusiness.googleapis.com/upload/v1/media/{$resourceName}?upload_type=media";
+            
+            $fileContents = file_get_contents($filePath);
+            if ($fileContents === false) {
+                Log::error('Failed to read file', ['path' => $filePath]);
+                return false;
+            }
+
+            $response = Http::withToken($accessToken)
+                ->withBody($fileContents, mime_content_type($filePath))
+                ->post($url);
+
+            if (!$response->successful()) {
+                Log::error('GMB Upload media bytes failed', [
+                    'status' => $response->status(),
+                    'error' => $response->body(),
+                ]);
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('GMB Upload media bytes exception', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Step 3: Finalize the upload by creating the media item.
+     */
+    public function finalizeMediaUpload(
+        string $locationName, 
+        string $resourceName, 
+        string $accessToken,
+        string $category = 'ADDITIONAL',
+        string $mediaFormat = 'PHOTO'
+    ): ?array
+    {
+        try {
+            $url = "https://mybusiness.googleapis.com/v4/{$locationName}/media";
+
+            $payload = [
+                'mediaFormat' => $mediaFormat,
+                'locationAssociation' => [
+                    'category' => $category
+                ],
+                'dataRef' => [
+                    'resourceName' => $resourceName
+                ]
+            ];
+
+            $response = Http::withToken($accessToken)->post($url, $payload);
+
+            if (!$response->successful()) {
+                Log::error('GMB Finalize media upload failed', [
+                    'status' => $response->status(),
+                    'error' => $response->json(),
+                ]);
+                return null;
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error('GMB Finalize media upload exception', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Complete helper method to upload media from a local file.
+     */
+    public function uploadMediaFromFile(
+        string $locationName,
+        string $filePath,
+        string $accessToken,
+        string $category = 'ADDITIONAL',
+        string $mediaFormat = 'PHOTO'
+    ): ?array
+    {
+        // Step 1: Start upload
+        $resourceName = $this->startMediaUpload($locationName, $accessToken);
+        if (!$resourceName) {
+            return null;
+        }
+
+        // Step 2: Upload bytes
+        if (!$this->uploadMediaBytes($resourceName, $filePath, $accessToken)) {
+            return null;
+        }
+
+        // Step 3: Finalize
+        return $this->finalizeMediaUpload($locationName, $resourceName, $accessToken, $category, $mediaFormat);
     }
 
     /**
