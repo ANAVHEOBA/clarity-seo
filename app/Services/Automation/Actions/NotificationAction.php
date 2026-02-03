@@ -17,6 +17,12 @@ class NotificationAction implements ActionInterface
     public function execute(array $actionConfig, array $contextData, AutomationWorkflow $workflow): array
     {
         $type = $actionConfig['type'] ?? 'email';
+        
+        // If type is 'notification', default to email
+        if ($type === 'notification') {
+            $type = 'email';
+        }
+        
         $recipients = $this->resolveRecipients($actionConfig, $contextData, $workflow);
         $message = $this->buildMessage($actionConfig, $contextData);
 
@@ -197,8 +203,8 @@ class NotificationAction implements ActionInterface
         
         foreach ($variables as $key => $value) {
             $placeholder = "{{" . $key . "}}";
-            $message = str_replace($placeholder, $value, $message);
-            $subject = str_replace($placeholder, $value, $subject);
+            $message = str_replace($placeholder, (string) $value, $message);
+            $subject = str_replace($placeholder, (string) $value, $subject);
         }
 
         return [
