@@ -84,11 +84,19 @@ class FacebookReviewService
                 $openGraphStoryId = $rating['open_graph_story']['id'];
             }
 
+            // Generate a more robust external_id to prevent duplicates
+            $externalId = $openGraphStoryId ?? $this->generateFallbackExternalId(
+                $authorName,
+                $createdTime,
+                $rating['rating'],
+                $content
+            );
+
             Review::updateOrCreate(
                 [
                     'location_id' => $location->id,
                     'platform' => 'facebook',
-                    'external_id' => $openGraphStoryId ?? md5($authorName . $createdTime),
+                    'external_id' => $externalId,
                 ],
                 [
                     'author_name' => $authorName,
@@ -249,6 +257,27 @@ class FacebookReviewService
 
             return null;
         }
+    }
+
+    /**
+     * Generate a fallback external_id when open_graph_story_id is not available.
+     * Uses multiple fields to minimize collision risk.
+     */
+    protected function generateFallbackExternalId(
+        string $authorName,
+        string $createdTime,
+        int $rating,
+        ?string $content
+    ): string {
+        $components = [
+            'facebook',
+            $authorName,
+            $createdTime,
+            $rating,
+            substr($content ?? '', 0, 100), // First 100 chars to differentiate
+        ];
+        
+        return 'fb_' . md5(implode('|', $components));
     }
 
     /**

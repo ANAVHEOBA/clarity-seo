@@ -297,12 +297,42 @@ class ReviewService
         $syncedCount = 0;
         foreach ($reviews as $reviewData) {
             if (!isset($reviewData['rating'])) continue;
+            
+            // Generate a more robust external_id to prevent duplicates
+            $externalId = $this->generateGooglePlacesExternalId(
+                $reviewData['author_name'] ?? 'anonymous',
+                $reviewData['time'] ?? time(),
+                $reviewData['rating'],
+                $reviewData['text'] ?? null
+            );
+            
             Review::updateOrCreate(
-                ['location_id' => $location->id, 'platform' => 'google', 'external_id' => md5(($reviewData['author_name'] ?? '') . ($reviewData['time'] ?? ''))],
+                ['location_id' => $location->id, 'platform' => 'google', 'external_id' => $externalId],
                 ['author_name' => $reviewData['author_name'] ?? null, 'author_image' => $reviewData['profile_photo_url'] ?? null, 'rating' => $reviewData['rating'], 'content' => $reviewData['text'] ?? null, 'published_at' => isset($reviewData['time']) ? \Carbon\Carbon::createFromTimestamp($reviewData['time']) : now(), 'metadata' => $reviewData]
             );
             $syncedCount++;
         }
         return $syncedCount;
+    }
+
+    /**
+     * Generate a robust external_id for Google Places reviews.
+     * Uses multiple fields to minimize collision risk.
+     */
+    protected function generateGooglePlacesExternalId(
+        string $authorName,
+        int $time,
+        int $rating,
+        ?string $content
+    ): string {
+        $components = [
+            'google_places',
+            $authorName,
+            $time,
+            $rating,
+            substr($content ?? '', 0, 100), // First 100 chars to differentiate
+        ];
+        
+        return 'gp_' . md5(implode('|', $components));
     }
 }
