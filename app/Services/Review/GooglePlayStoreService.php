@@ -51,6 +51,7 @@ class GooglePlayStoreService
             
             $reviewsResponse = $service->reviews->listReviews($packageName);
             $syncedCount = 0;
+            $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
 
             $reviews = $reviewsResponse->getReviews() ?? [];
 
@@ -86,6 +87,18 @@ class GooglePlayStoreService
                         ],
                     ]
                 );
+                
+                // Trigger automation workflows for new reviews
+                if ($review->wasRecentlyCreated) {
+                    try {
+                        $triggerEvaluator->handleReviewReceived($review);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to trigger automation for review', [
+                            'review_id' => $review->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
                 
                 // If there's a developer reply
                 $developerComment = $playReview->getComments()[1] ?? null; // Usually index 1 if reply exists

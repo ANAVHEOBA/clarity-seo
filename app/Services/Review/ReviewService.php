@@ -240,6 +240,8 @@ class ReviewService
         if (!$reviewsData || !isset($reviewsData['reviews'])) return 0;
 
         $syncedCount = 0;
+        $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
+        
         foreach ($reviewsData['reviews'] as $reviewData) {
             $starRating = match($reviewData['starRating'] ?? '') { 'ONE' => 1, 'TWO' => 2, 'THREE' => 3, 'FOUR' => 4, 'FIVE' => 5, default => 0 };
             if ($starRating === 0) continue;
@@ -248,6 +250,18 @@ class ReviewService
                 ['location_id' => $location->id, 'platform' => 'google', 'external_id' => $reviewData['name']],
                 ['author_name' => $reviewData['reviewer']['displayName'] ?? 'Anonymous', 'author_image' => $reviewData['reviewer']['profilePhotoUrl'] ?? null, 'rating' => $starRating, 'content' => $reviewData['comment'] ?? null, 'published_at' => isset($reviewData['createTime']) ? \Carbon\Carbon::parse($reviewData['createTime']) : now(), 'metadata' => $reviewData]
             );
+            
+            // Trigger automation workflows for new reviews
+            if ($review->wasRecentlyCreated) {
+                try {
+                    $triggerEvaluator->handleReviewReceived($review);
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger automation for review', [
+                        'review_id' => $review->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
             
             // Sync reviewReply if it exists on GMB
             if (isset($reviewData['reviewReply']['comment'])) {
@@ -295,6 +309,8 @@ class ReviewService
 
         $reviews = $response->json('result.reviews', []);
         $syncedCount = 0;
+        $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
+        
         foreach ($reviews as $reviewData) {
             if (!isset($reviewData['rating'])) continue;
             
@@ -306,10 +322,23 @@ class ReviewService
                 $reviewData['text'] ?? null
             );
             
-            Review::updateOrCreate(
+            $review = Review::updateOrCreate(
                 ['location_id' => $location->id, 'platform' => 'google', 'external_id' => $externalId],
                 ['author_name' => $reviewData['author_name'] ?? null, 'author_image' => $reviewData['profile_photo_url'] ?? null, 'rating' => $reviewData['rating'], 'content' => $reviewData['text'] ?? null, 'published_at' => isset($reviewData['time']) ? \Carbon\Carbon::createFromTimestamp($reviewData['time']) : now(), 'metadata' => $reviewData]
             );
+            
+            // Trigger automation workflows for new reviews
+            if ($review->wasRecentlyCreated) {
+                try {
+                    $triggerEvaluator->handleReviewReceived($review);
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger automation for review', [
+                        'review_id' => $review->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            
             $syncedCount++;
         }
         return $syncedCount;

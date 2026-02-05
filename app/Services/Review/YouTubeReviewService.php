@@ -78,13 +78,14 @@ class YouTubeReviewService
             ]);
 
             $syncedCount = 0;
+            $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
 
             foreach ($response->getItems() as $thread) {
                 /** @var CommentThread $thread */
                 $topComment = $thread->getSnippet()->getTopLevelComment();
                 $snippet = $topComment->getSnippet();
 
-                Review::updateOrCreate(
+                $review = Review::updateOrCreate(
                     [
                         'location_id' => $location->id,
                         'platform' => PlatformCredential::PLATFORM_YOUTUBE,
@@ -104,6 +105,18 @@ class YouTubeReviewService
                         ],
                     ]
                 );
+
+                // Trigger automation workflows for new reviews
+                if ($review->wasRecentlyCreated) {
+                    try {
+                        $triggerEvaluator->handleReviewReceived($review);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to trigger automation for review', [
+                            'review_id' => $review->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
 
                 $syncedCount++;
             }

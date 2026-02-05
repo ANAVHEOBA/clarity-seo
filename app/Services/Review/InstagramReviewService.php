@@ -55,6 +55,7 @@ class InstagramReviewService
         }
 
         $syncedCount = 0;
+        $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
 
         foreach ($mediaItems as $media) {
             // Only process if there are comments
@@ -63,7 +64,7 @@ class InstagramReviewService
                 
                 foreach ($comments as $comment) {
                     // Save as Review
-                    Review::updateOrCreate(
+                    $review = Review::updateOrCreate(
                         [
                             'location_id' => $location->id,
                             'platform' => PlatformCredential::PLATFORM_INSTAGRAM,
@@ -84,6 +85,19 @@ class InstagramReviewService
                             ]
                         ]
                     );
+                    
+                    // Trigger automation workflows for new reviews
+                    if ($review->wasRecentlyCreated) {
+                        try {
+                            $triggerEvaluator->handleReviewReceived($review);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to trigger automation for review', [
+                                'review_id' => $review->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                    
                     $syncedCount++;
                 }
             }

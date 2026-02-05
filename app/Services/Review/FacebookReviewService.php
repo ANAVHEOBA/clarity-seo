@@ -61,6 +61,7 @@ class FacebookReviewService
         }
 
         $syncedCount = 0;
+        $triggerEvaluator = app(\App\Services\Automation\Triggers\TriggerEvaluator::class);
 
         foreach ($ratings as $rating) {
             if (!isset($rating['rating'])) {
@@ -92,7 +93,7 @@ class FacebookReviewService
                 $content
             );
 
-            Review::updateOrCreate(
+            $review = Review::updateOrCreate(
                 [
                     'location_id' => $location->id,
                     'platform' => 'facebook',
@@ -107,6 +108,18 @@ class FacebookReviewService
                     'metadata' => $rating,
                 ]
             );
+
+            // Trigger automation workflows for new reviews
+            if ($review->wasRecentlyCreated) {
+                try {
+                    $triggerEvaluator->handleReviewReceived($review);
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger automation for review', [
+                        'review_id' => $review->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             $syncedCount++;
         }
