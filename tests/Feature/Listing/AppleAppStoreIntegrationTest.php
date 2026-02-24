@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Listing\AppleAppStoreService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -178,5 +179,23 @@ describe('Apple App Store integration', function () {
         $response->assertOk()
             ->assertJsonPath('valid', true)
             ->assertJsonPath('status_code', 200);
+    });
+
+    it('generates ES256 jose signature with 64-byte signature payload', function () {
+        $account = new \App\Models\AppleAppStoreAccount([
+            'issuer_id' => '3d24e14c-e344-4c39-bd2d-7dd0c414f476',
+            'key_id' => '365CZB3ST7',
+            'private_key' => APPLE_TEST_PRIVATE_KEY,
+            'is_active' => true,
+        ]);
+
+        $service = app(AppleAppStoreService::class);
+        $jwt = $service->generateJwt($account);
+        $parts = explode('.', $jwt);
+
+        expect($parts)->toHaveCount(3);
+
+        $signature = base64_decode(strtr($parts[2], '-_', '+/'));
+        expect(strlen($signature))->toBe(64);
     });
 });

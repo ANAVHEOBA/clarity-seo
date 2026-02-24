@@ -61,7 +61,9 @@ class AppleAppStoreService
             throw new RuntimeException('Unable to sign App Store JWT with the provided private key.');
         }
 
-        return $signingInput.'.'.$this->base64UrlEncode($signature);
+        $joseSignature = $this->convertDerSignatureToJose($signature, 64);
+
+        return $signingInput.'.'.$this->base64UrlEncode($joseSignature);
     }
 
     /** @return array{valid: bool, reason: string|null, jwt: string|null} */
@@ -93,11 +95,20 @@ class AppleAppStoreService
             ];
         }
 
-        $response = Http::withToken((string) $tokenResult['jwt'])
-            ->acceptJson()
-            ->get($this->getApiBaseUrl().'/v1/apps', [
-                'limit' => 1,
-            ]);
+        try {
+            $response = Http::withToken((string) $tokenResult['jwt'])
+                ->acceptJson()
+                ->get($this->getApiBaseUrl().'/v1/apps', [
+                    'limit' => 1,
+                ]);
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'status' => null,
+                'body' => null,
+                'message' => 'Network error while calling App Store Connect: '.$e->getMessage(),
+            ];
+        }
 
         $body = is_array($response->json()) ? $response->json() : null;
 
@@ -114,5 +125,78 @@ class AppleAppStoreService
     private function base64UrlEncode(string $value): string
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function convertDerSignatureToJose(string $derSignature, int $expectedLength): string
+    {
+        $offset = 0;
+        $len = strlen($derSignature);
+
+        if ($len < 8 || ord($derSignature[$offset]) !== 0x30) {
+            throw new RuntimeException('Invalid DER signature format.');
+        }
+        $offset++;
+        $sequenceLength = $this->readDerLength($derSignature, $offset);
+        if ($offset + $sequenceLength > $len) {
+            throw new RuntimeException('Invalid DER sequence length.');
+        }
+
+        if ($offset >= $len || ord($derSignature[$offset]) !== 0x02) {
+            throw new RuntimeException('Invalid DER signature format for R.');
+        }
+        $offset++;
+        $rLength = $this->readDerLength($derSignature, $offset);
+        $r = substr($derSignature, $offset, $rLength);
+        $offset += $rLength;
+
+        if ($offset >= $len || ord($derSignature[$offset]) !== 0x02) {
+            throw new RuntimeException('Invalid DER signature format for S.');
+        }
+        $offset++;
+        $sLength = $this->readDerLength($derSignature, $offset);
+        $s = substr($derSignature, $offset, $sLength);
+
+        $partLength = intdiv($expectedLength, 2);
+        $r = ltrim($r, "\x00");
+        $s = ltrim($s, "\x00");
+
+        $r = str_pad($r, $partLength, "\x00", STR_PAD_LEFT);
+        $s = str_pad($s, $partLength, "\x00", STR_PAD_LEFT);
+
+        if (strlen($r) !== $partLength || strlen($s) !== $partLength) {
+            throw new RuntimeException('Invalid ES256 signature component length.');
+        }
+
+        return $r.$s;
+    }
+
+    private function readDerLength(string $der, int &$offset): int
+    {
+        if (! isset($der[$offset])) {
+            throw new RuntimeException('Invalid DER length.');
+        }
+
+        $length = ord($der[$offset]);
+        $offset++;
+
+        if (($length & 0x80) === 0) {
+            return $length;
+        }
+
+        $numBytes = $length & 0x7f;
+        if ($numBytes < 1 || $numBytes > 4) {
+            throw new RuntimeException('Invalid DER length bytes.');
+        }
+
+        $length = 0;
+        for ($i = 0; $i < $numBytes; $i++) {
+            if (! isset($der[$offset])) {
+                throw new RuntimeException('Invalid DER length encoding.');
+            }
+            $length = ($length << 8) | ord($der[$offset]);
+            $offset++;
+        }
+
+        return $length;
     }
 }
