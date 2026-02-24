@@ -178,10 +178,17 @@ class ReviewController extends Controller
             abort(404);
         }
 
-        if (! $location->hasGooglePlaceId() && ! $location->hasYelpBusinessId()) {
+        if (
+            ! $location->hasGooglePlaceId()
+            && ! $location->hasYelpBusinessId()
+            && ! $location->hasFacebookPageId()
+            && ! $location->hasGooglePlayPackageName()
+            && ! $location->hasYouTubeChannelId()
+            && ! $location->hasAppleAppStoreAppId()
+        ) {
             return response()->json([
-                'message' => 'Location must have a Google Place ID or Yelp Business ID to sync reviews.',
-                'errors' => ['google_place_id' => ['A Google Place ID or Yelp Business ID is required.']],
+                'message' => 'Location must have at least one platform identifier to sync reviews.',
+                'errors' => ['location' => ['Add at least one platform identifier (Google, Facebook, Google Play, YouTube, or Apple App Store).']],
             ], 422);
         }
 

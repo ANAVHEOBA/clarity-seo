@@ -40,6 +40,7 @@ class StoreLocationRequest extends FormRequest
             'business_hours.saturday' => ['nullable', 'array'],
             'business_hours.sunday' => ['nullable', 'array'],
             'status' => ['nullable', 'in:active,inactive'],
+            'apple_app_store_app_id' => ['nullable', 'string', 'max:64'],
         ];
     }
 

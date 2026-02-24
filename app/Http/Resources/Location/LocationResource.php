@@ -29,6 +29,7 @@ class LocationResource extends JsonResource
             'categories' => $this->categories,
             'business_hours' => $this->business_hours,
             'status' => $this->status,
+            'apple_app_store_app_id' => $this->apple_app_store_app_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

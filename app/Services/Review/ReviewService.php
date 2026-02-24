@@ -178,6 +178,14 @@ class ReviewService
             return $response->fresh();
         }
 
+        // Apple App Store
+        if ($review->platform === PlatformCredential::PLATFORM_APPLE_APP_STORE) {
+            if (!app(AppleAppStoreReviewService::class)->replyToReview($review, $response->content)) {
+                throw new \Exception('Failed to publish response to Apple App Store');
+            }
+            return $response->fresh();
+        }
+
         // YouTube
         if ($review->platform === PlatformCredential::PLATFORM_YOUTUBE) {
             $credential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_YOUTUBE);
@@ -198,7 +206,7 @@ class ReviewService
 
     public function syncReviewsForLocation(Location $location): array
     {
-        $counts = ['google' => 0, 'facebook' => 0, 'instagram' => 0, 'google_play' => 0, 'youtube' => 0];
+        $counts = ['google' => 0, 'facebook' => 0, 'instagram' => 0, 'google_play' => 0, 'youtube' => 0, 'apple_app_store' => 0];
         
         // Google
         $gmbCredential = PlatformCredential::getForTenant($location->tenant, PlatformCredential::PLATFORM_GOOGLE_MY_BUSINESS);
@@ -223,6 +231,10 @@ class ReviewService
         if ($location->hasYouTubeChannelId()) {
             $ytCred = PlatformCredential::where('tenant_id', $location->tenant_id)->where('platform', 'youtube')->where('is_active', true)->first();
             if ($ytCred && $ytCred->isValid()) $counts['youtube'] = app(YouTubeReviewService::class)->syncReviews($location, $ytCred);
+        }
+
+        if ($location->hasAppleAppStoreAppId()) {
+            $counts['apple_app_store'] = app(AppleAppStoreReviewService::class)->syncReviews($location);
         }
 
         $location->update(['reviews_synced_at' => now()]);

@@ -26,6 +26,8 @@ class PlatformCredential extends Model
 
     public const PLATFORM_BING = 'bing';
 
+    public const PLATFORM_APPLE_APP_STORE = 'apple_app_store';
+
     protected $fillable = [
         'tenant_id',
         'platform',

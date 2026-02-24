@@ -33,6 +33,7 @@ class UpdateLocationRequest extends FormRequest
             'categories.*' => ['string', 'max:100'],
             'business_hours' => ['nullable', 'array'],
             'status' => ['nullable', 'in:active,inactive'],
+            'apple_app_store_app_id' => ['nullable', 'string', 'max:64'],
         ];
     }
 

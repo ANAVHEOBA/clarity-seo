@@ -35,6 +35,7 @@ class Location extends Model
         'facebook_page_id',
         'google_play_package_name',
         'youtube_channel_id',
+        'apple_app_store_app_id',
         'reviews_synced_at',
         'embed_key',
     ];
@@ -94,6 +95,11 @@ class Location extends Model
     public function hasYouTubeChannelId(): bool
     {
         return !empty($this->youtube_channel_id);
+    }
+
+    public function hasAppleAppStoreAppId(): bool
+    {
+        return !empty($this->apple_app_store_app_id);
     }
 
     public function generateEmbedKey(): string
