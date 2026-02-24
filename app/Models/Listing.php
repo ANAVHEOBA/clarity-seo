@@ -24,6 +24,8 @@ class Listing extends Model
 
     public const PLATFORM_GOOGLE_PLAY = 'google_play';
 
+    public const PLATFORM_APPLE_APP_STORE = 'apple_app_store';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_ACTIVE = 'active';
@@ -102,6 +104,11 @@ class Listing extends Model
     public function isGooglePlay(): bool
     {
         return $this->platform === self::PLATFORM_GOOGLE_PLAY;
+    }
+
+    public function isAppleAppStore(): bool
+    {
+        return $this->platform === self::PLATFORM_APPLE_APP_STORE;
     }
 
     public function isSynced(): bool

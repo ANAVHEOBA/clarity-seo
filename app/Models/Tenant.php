@@ -57,6 +57,21 @@ class Tenant extends Model
         return $this->hasMany(Location::class);
     }
 
+    public function credentials(): HasMany
+    {
+        return $this->hasMany(PlatformCredential::class);
+    }
+
+    public function appStoreAccounts(): HasMany
+    {
+        return $this->hasMany(AppleAppStoreAccount::class);
+    }
+
+    public function appStoreApps(): HasMany
+    {
+        return $this->hasMany(AppleAppStoreApp::class);
+    }
+
     public function owners(): BelongsToMany
     {
         return $this->users()->wherePivot('role', 'owner');

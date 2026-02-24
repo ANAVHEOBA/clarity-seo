@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\Automation\AutomationWorkflowController;
 use App\Http\Controllers\Api\V1\Embed\EmbedController;
+use App\Http\Controllers\Api\V1\Listing\AppleAppStoreController;
 use App\Http\Controllers\Api\V1\Listing\FacebookConnectController;
 use App\Http\Controllers\Api\V1\Listing\GoogleMyBusinessController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
@@ -61,6 +62,15 @@ Route::prefix('v1')->group(function () {
         // Google My Business Connect
         Route::get('/tenants/{tenant}/google/connect', [GoogleMyBusinessController::class, 'connect'])->name('api.v1.google.connect');
         Route::post('/tenants/{tenant}/google/credentials', [GoogleMyBusinessController::class, 'storeCredential'])->name('api.v1.google.credentials.store');
+
+        // Apple App Store Connect
+        Route::get('/tenants/{tenant}/apple-app-store/accounts', [AppleAppStoreController::class, 'accounts'])->name('api.v1.apple.accounts.index');
+        Route::post('/tenants/{tenant}/apple-app-store/accounts', [AppleAppStoreController::class, 'storeAccount'])->name('api.v1.apple.accounts.store');
+        Route::post('/tenants/{tenant}/apple-app-store/accounts/{account}/test', [AppleAppStoreController::class, 'testAccount'])->name('api.v1.apple.accounts.test');
+        Route::delete('/tenants/{tenant}/apple-app-store/accounts/{account}', [AppleAppStoreController::class, 'destroyAccount'])->name('api.v1.apple.accounts.destroy');
+        Route::get('/tenants/{tenant}/apple-app-store/apps', [AppleAppStoreController::class, 'apps'])->name('api.v1.apple.apps.index');
+        Route::post('/tenants/{tenant}/apple-app-store/apps', [AppleAppStoreController::class, 'storeApp'])->name('api.v1.apple.apps.store');
+        Route::delete('/tenants/{tenant}/apple-app-store/apps/{app}', [AppleAppStoreController::class, 'destroyApp'])->name('api.v1.apple.apps.destroy');
 
         // Tenant Members
         Route::get('/tenants/{tenant}/members', [MemberController::class, 'index'])->name('tenants.members.index');
