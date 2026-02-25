@@ -56,6 +56,13 @@ All routes are under `/api/v1` and require `auth:sanctum`.
 - `POST /tenants/{tenant}/apple-app-store/apps`
 - `DELETE /tenants/{tenant}/apple-app-store/apps/{app}`
 
+### Listing Sync/Publish
+- `POST /tenants/{tenant}/locations/{location}/listings/sync/apple_app_store`
+- `POST /tenants/{tenant}/locations/{location}/listings/publish/apple_app_store`
+
+For Apple listing sync, location must include:
+- `apple_app_store_app_id` = App Store app ID (example: `6758574978`)
+
 ## Create Account Example
 ```bash
 TOKEN="<sanctum_token>"
@@ -104,6 +111,22 @@ curl -s -X POST "http://localhost:8000/api/v1/tenants/${TENANT_ID}/apple-app-sto
     "country_code": "US"
   }'
 ```
+
+## Sync Apple Listing For a Location
+```bash
+curl -s -X POST \"http://localhost:8000/api/v1/tenants/${TENANT_ID}/locations/${LOCATION_ID}/listings/sync/apple_app_store\" \\
+  -H \"Authorization: Bearer ${TOKEN}\"
+```
+
+## Publish Apple Listing For a Location
+```bash
+curl -s -X POST \"http://localhost:8000/api/v1/tenants/${TENANT_ID}/locations/${LOCATION_ID}/listings/publish/apple_app_store\" \\
+  -H \"Authorization: Bearer ${TOKEN}\"
+```
+
+Note:
+- Current Apple listing publish runs a fresh Apple sync/verification and sets `last_published_at` locally.
+- It does not PATCH App Store Connect app metadata fields in this release.
 
 ## Troubleshooting
 - `401 NOT_AUTHORIZED`: issuer/key/private key mismatch, expired JWT, or wrong key.

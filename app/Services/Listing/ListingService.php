@@ -16,7 +16,8 @@ class ListingService
 {
     public function __construct(
         protected FacebookService $facebookService,
-        protected GoogleMyBusinessService $googleMyBusinessService
+        protected GoogleMyBusinessService $googleMyBusinessService,
+        protected AppleAppStoreListingService $appleAppStoreListingService,
     ) {}
 
     /**
@@ -77,6 +78,10 @@ class ListingService
      */
     public function syncFromPlatform(Location $location, string $platform): ?Listing
     {
+        if ($platform === Listing::PLATFORM_APPLE_APP_STORE) {
+            return $this->appleAppStoreListingService->syncListing($location);
+        }
+
         $tenant = $location->tenant;
         $credential = PlatformCredential::getForTenant($tenant, $platform);
 
@@ -96,6 +101,10 @@ class ListingService
      */
     public function publishToPlatform(Location $location, string $platform): bool
     {
+        if ($platform === Listing::PLATFORM_APPLE_APP_STORE) {
+            return $this->appleAppStoreListingService->publishListing($location);
+        }
+
         $tenant = $location->tenant;
         $credential = PlatformCredential::getForTenant($tenant, $platform);
 
@@ -122,6 +131,7 @@ class ListingService
         $platforms = [
             Listing::PLATFORM_FACEBOOK,
             Listing::PLATFORM_GOOGLE_MY_BUSINESS,
+            Listing::PLATFORM_APPLE_APP_STORE,
         ];
 
         foreach ($platforms as $platform) {
@@ -147,6 +157,7 @@ class ListingService
 
         $platforms = [
             Listing::PLATFORM_FACEBOOK,
+            Listing::PLATFORM_APPLE_APP_STORE,
         ];
 
         foreach ($platforms as $platform) {
@@ -203,6 +214,7 @@ class ListingService
                 'facebook' => $byPlatform['facebook'] ?? 0,
                 'google' => $byPlatform['google'] ?? 0,
                 'bing' => $byPlatform['bing'] ?? 0,
+                'apple_app_store' => $byPlatform['apple_app_store'] ?? 0,
             ],
             'by_status' => [
                 'pending' => $byStatus['pending'] ?? 0,
@@ -235,6 +247,10 @@ class ListingService
                 'connected' => false,
                 'page_id' => null,
             ],
+            Listing::PLATFORM_APPLE_APP_STORE => [
+                'connected' => false,
+                'page_id' => null,
+            ],
         ];
 
         $credentials = PlatformCredential::where('tenant_id', $tenant->id)
@@ -249,6 +265,12 @@ class ListingService
                 ];
             }
         }
+
+        $hasAppleAccount = $tenant->appStoreAccounts()->where('is_active', true)->exists();
+        $platforms[Listing::PLATFORM_APPLE_APP_STORE] = [
+            'connected' => $hasAppleAccount,
+            'page_id' => null,
+        ];
 
         return $platforms;
     }
