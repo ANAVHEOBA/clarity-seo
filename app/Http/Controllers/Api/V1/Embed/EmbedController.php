@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Embed;
 
+use App\Helpers\SchemaHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Embed\EmbedReviewResource;
 use App\Models\Location;
 use App\Models\Tenant;
+use App\Services\Schema\LocalBusinessSchemaGenerator;
+use App\Services\Schema\ReviewSchemaGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -99,6 +102,19 @@ class EmbedController extends Controller
         $tenant = $location->tenant;
         $showLogo = ! $tenant->isWhiteLabelEnabled();
 
+        // Generate schema.org markup
+        $schemas = [];
+
+        // LocalBusiness schema for the location
+        $schemas[] = new LocalBusinessSchemaGenerator($location);
+
+        // Review schema for each review
+        foreach ($reviews as $review) {
+            $schemas[] = new ReviewSchemaGenerator($review);
+        }
+
+        $schemaJson = SchemaHelper::toMultipleJsonLd($schemas);
+
         // Return server-rendered HTML instead of JSON
         return response()->view('embed.showcase', [
             'reviews' => $reviews,
@@ -106,6 +122,7 @@ class EmbedController extends Controller
             'showLogo' => $showLogo,
             'theme' => $theme,
             'layout' => $layout,
+            'schemaJson' => $schemaJson,
         ])->header('Content-Type', 'text/html')
           ->header('X-Frame-Options', 'ALLOWALL')
           ->header('Access-Control-Allow-Origin', '*');
