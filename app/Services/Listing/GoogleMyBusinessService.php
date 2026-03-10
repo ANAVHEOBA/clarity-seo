@@ -615,4 +615,54 @@ class GoogleMyBusinessService
         $credential = $this->getCredentials($tenant);
         return $credential && $credential->isValid();
     }
+
+    /**
+     * Update a Google My Business location.
+     */
+    public function updateLocation(string $locationId, string $accessToken, array $data): array|false
+    {
+        try {
+            // Build proper updateMask for nested fields
+            $updateMask = $this->buildUpdateMask($data);
+
+            $url = "https://mybusinessbusinessinformation.googleapis.com/v1/{$locationId}?updateMask={$updateMask}";
+
+            $response = Http::withToken($accessToken)->patch($url, $data);
+
+            if ($response->failed()) {
+                Log::error('GMB update failed', [
+                    'url' => $url,
+                    'updateMask' => $updateMask,
+                    'payload' => $data,
+                    'response' => $response->json(),
+                    'status' => $response->status()
+                ]);
+                return false;
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error('GMB update exception', [
+                'error' => $e->getMessage(),
+                'locationId' => $locationId
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Build updateMask from data array for GMB API.
+     */
+    protected function buildUpdateMask(array $data): string
+    {
+        $masks = [];
+
+        foreach (array_keys($data) as $key) {
+            // For nested objects, just use the top-level key
+            $masks[] = $key;
+        }
+
+        return implode(',', $masks);
+    }
+
 }
