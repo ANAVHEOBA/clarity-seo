@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\DomainVerificationFileController;
 use App\Http\Controllers\FacebookWebController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/.well-known/localmator-domain-verification.txt', DomainVerificationFileController::class)
+    ->name('domain-verification.file');
 
 // Embed Widget JS
 Route::get('/embed/showcase.js', function () {

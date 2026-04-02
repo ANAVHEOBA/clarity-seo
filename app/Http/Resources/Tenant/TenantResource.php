@@ -27,6 +27,8 @@ class TenantResource extends JsonResource
             'reply_to_email' => $this->reply_to_email,
             'custom_domain' => $this->custom_domain,
             'custom_domain_verified_at' => $this->custom_domain_verified_at?->toIso8601String(),
+            'domain_verification_requested_at' => $this->domain_verification_requested_at?->toIso8601String(),
+            'has_verified_custom_domain' => $this->hasVerifiedCustomDomain(),
             'public_signup_enabled' => $this->public_signup_enabled,
             'hide_vendor_branding' => $this->hide_vendor_branding,
             'white_label_enabled' => $this->isWhiteLabelEnabled(),

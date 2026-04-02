@@ -29,6 +29,8 @@ class Tenant extends Model
         'reply_to_email',
         'custom_domain',
         'custom_domain_verified_at',
+        'domain_verification_token',
+        'domain_verification_requested_at',
         'public_signup_enabled',
         'hide_vendor_branding',
         'plan',
@@ -43,6 +45,7 @@ class Tenant extends Model
             'public_signup_enabled' => 'boolean',
             'hide_vendor_branding' => 'boolean',
             'custom_domain_verified_at' => 'datetime',
+            'domain_verification_requested_at' => 'datetime',
         ];
     }
 

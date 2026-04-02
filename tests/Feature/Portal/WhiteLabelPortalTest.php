@@ -7,6 +7,7 @@ use App\Models\Review;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 
 describe('Portal Branding', function () {
@@ -134,6 +135,73 @@ describe('Portal Branding', function () {
         $response->assertOk();
         $response->assertSee('Agency Portal', false);
         $response->assertDontSee('Localmator', false);
+    });
+});
+
+describe('Domain Verification', function () {
+    it('issues a verification challenge for a tenant custom domain', function () {
+        $user = User::factory()->create();
+        $tenant = Tenant::factory()
+            ->hasAttached($user, ['role' => 'owner'])
+            ->create([
+                'custom_domain' => 'verify.example.test',
+            ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('http://127.0.0.1:8000/api/v1/tenants/'.$tenant->id.'/domain-verification/request');
+
+        $response->assertOk()
+            ->assertJsonPath('data.custom_domain', 'verify.example.test')
+            ->assertJsonPath('data.verification_path', '/.well-known/localmator-domain-verification.txt')
+            ->assertJsonPath('data.local_testing_target.host_header', 'verify.example.test');
+
+        expect($response->json('data.verification_token'))->not->toBeNull();
+        expect($tenant->fresh()->domain_verification_token)->not->toBeNull();
+    });
+
+    it('serves the verification token through the public well-known route', function () {
+        $tenant = Tenant::factory()->create([
+            'custom_domain' => 'verify-file.example.test',
+            'domain_verification_token' => 'verification-token-123',
+            'domain_verification_requested_at' => now(),
+        ]);
+
+        $response = $this->get('http://verify-file.example.test/.well-known/localmator-domain-verification.txt');
+
+        $response->assertOk();
+        $response->assertSee('verification-token-123', false);
+
+        expect($tenant->fresh()->domain_verification_token)->toBe('verification-token-123');
+    });
+
+    it('verifies a custom domain using the local callback target and host header', function () {
+        $user = User::factory()->create();
+        $tenant = Tenant::factory()
+            ->hasAttached($user, ['role' => 'owner'])
+            ->create([
+                'custom_domain' => 'verify-check.example.test',
+                'domain_verification_token' => 'verify-token-abc',
+                'domain_verification_requested_at' => now(),
+            ]);
+
+        Sanctum::actingAs($user);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            expect($request->url())->toBe('http://127.0.0.1:8000/.well-known/localmator-domain-verification.txt');
+            expect($request->hasHeader('Host', 'verify-check.example.test'))->toBeTrue();
+
+            return Http::response('verify-token-abc', 200);
+        });
+
+        $response = $this->postJson('http://127.0.0.1:8000/api/v1/tenants/'.$tenant->id.'/domain-verification/verify');
+
+        $response->assertOk()
+            ->assertJsonPath('verified', true)
+            ->assertJsonPath('data.is_verified', true);
+
+        expect($tenant->fresh()->hasVerifiedCustomDomain())->toBeTrue();
+        expect($tenant->fresh()->domain_verification_token)->toBeNull();
     });
 });
 

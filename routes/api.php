@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\Review\ReviewController;
 use App\Http\Controllers\Api\V1\Sentiment\SentimentController;
 use App\Http\Controllers\Api\V1\Tenant\InvitationController;
 use App\Http\Controllers\Api\V1\Tenant\MemberController;
+use App\Http\Controllers\Api\V1\Tenant\TenantDomainVerificationController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,6 +84,10 @@ Route::prefix('v1')->group(function () {
         // Tenant Invitations
         Route::post('/tenants/{tenant}/invitations', [InvitationController::class, 'store'])->name('tenants.invitations.store');
         Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
+        Route::get('/tenants/{tenant}/domain-verification', [TenantDomainVerificationController::class, 'show'])->name('tenants.domain-verification.show');
+        Route::post('/tenants/{tenant}/domain-verification/request', [TenantDomainVerificationController::class, 'requestChallenge'])->name('tenants.domain-verification.request');
+        Route::post('/tenants/{tenant}/domain-verification/verify', [TenantDomainVerificationController::class, 'verify'])->name('tenants.domain-verification.verify');
+        Route::delete('/tenants/{tenant}/domain-verification', [TenantDomainVerificationController::class, 'destroy'])->name('tenants.domain-verification.destroy');
 
         // Locations
         Route::post('/tenants/{tenant}/locations/bulk', [LocationController::class, 'bulkImport'])->name('tenants.locations.bulk-import');

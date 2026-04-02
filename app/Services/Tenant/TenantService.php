@@ -124,10 +124,14 @@ class TenantService
             && ! array_key_exists('custom_domain_verified_at', $data)
         ) {
             $data['custom_domain_verified_at'] = null;
+            $data['domain_verification_token'] = null;
+            $data['domain_verification_requested_at'] = null;
         }
 
         if (empty($data['custom_domain'] ?? null)) {
             $data['custom_domain_verified_at'] = null;
+            $data['domain_verification_token'] = null;
+            $data['domain_verification_requested_at'] = null;
         }
 
         return $data;
