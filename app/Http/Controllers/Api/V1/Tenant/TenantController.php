@@ -10,6 +10,7 @@ use App\Http\Requests\Tenant\UpdateTenantRequest;
 use App\Http\Resources\Tenant\TenantResource;
 use App\Models\Tenant;
 use App\Services\Tenant\TenantService;
+use App\Support\Portal\PortalContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,11 +20,16 @@ class TenantController extends Controller
 {
     public function __construct(
         private readonly TenantService $tenantService,
+        private readonly PortalContext $portalContext,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
         $tenants = $request->user()->tenants;
+
+        if (($portalTenant = $this->portalContext->tenant()) !== null) {
+            $tenants = $tenants->where('id', $portalTenant->id)->values();
+        }
 
         return TenantResource::collection($tenants);
     }

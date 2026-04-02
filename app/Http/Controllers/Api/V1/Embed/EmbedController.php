@@ -101,6 +101,10 @@ class EmbedController extends Controller
 
         $tenant = $location->tenant;
         $showLogo = ! $tenant->isWhiteLabelEnabled();
+        $brandName = $tenant->brandDisplayName();
+        $brandUrl = $tenant->hasVerifiedCustomDomain()
+            ? $tenant->portalBaseUrl()
+            : rtrim((string) config('app.url'), '/');
 
         // Generate schema.org markup
         $schemas = [];
@@ -120,6 +124,8 @@ class EmbedController extends Controller
             'reviews' => $reviews,
             'location' => $location,
             'showLogo' => $showLogo,
+            'brandName' => $brandName,
+            'brandUrl' => $brandUrl,
             'theme' => $theme,
             'layout' => $layout,
             'schemaJson' => $schemaJson,

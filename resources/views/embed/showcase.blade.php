@@ -221,8 +221,8 @@
 
         @if($showLogo)
             <div class="branding">
-                <a href="https://localmator.com" target="_blank" rel="noopener noreferrer">
-                    Powered by <strong>Localmator</strong>
+                <a href="{{ $brandUrl }}" target="_blank" rel="noopener noreferrer">
+                    Powered by <strong>{{ $brandName }}</strong>
                 </a>
             </div>
         @endif

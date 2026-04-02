@@ -9,6 +9,7 @@ use App\Http\Requests\Tenant\InviteMemberRequest;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Services\Tenant\TenantService;
+use App\Support\Portal\PortalContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,6 +18,7 @@ class InvitationController extends Controller
 {
     public function __construct(
         private readonly TenantService $tenantService,
+        private readonly PortalContext $portalContext,
     ) {}
 
     public function store(InviteMemberRequest $request, Tenant $tenant): JsonResponse
@@ -50,6 +52,11 @@ class InvitationController extends Controller
     public function accept(Request $request, string $token): JsonResponse
     {
         $invitation = TenantInvitation::where('token', $token)->firstOrFail();
+        $portalTenant = $this->portalContext->tenant();
+
+        if ($portalTenant !== null && $invitation->tenant_id !== $portalTenant->id) {
+            abort(404);
+        }
 
         if ($invitation->isExpired()) {
             return response()->json([

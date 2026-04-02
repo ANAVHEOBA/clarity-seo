@@ -1,5 +1,5 @@
 <x-mail::message>
-# Your Report is Ready
+# {{ $brandName }} Report Ready
 
 @if($customMessage)
 {{ $customMessage }}
@@ -19,5 +19,5 @@ Download Report
 This download link will expire in 30 days.
 
 Thanks,<br>
-{{ config('app.name') }}
+{{ $brandName }}
 </x-mail::message>

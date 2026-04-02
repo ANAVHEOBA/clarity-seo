@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Listing\FacebookConnectController;
 use App\Http\Controllers\Api\V1\Listing\GoogleMyBusinessController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\Location\LocationController;
+use App\Http\Controllers\Api\V1\Portal\PortalController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportScheduleController;
 use App\Http\Controllers\Api\V1\ReportTemplateController;
@@ -49,6 +50,7 @@ Route::prefix('v1')->group(function () {
 
     // Public Embed Routes
     Route::get('/embed/{embedKey}/reviews', [EmbedController::class, 'getReviews'])->name('api.v1.embed.reviews');
+    Route::get('/portal', [PortalController::class, 'show'])->name('api.v1.portal.show');
 
     // Authenticated routes
     Route::middleware('auth:sanctum')->group(function () {

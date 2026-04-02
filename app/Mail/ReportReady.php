@@ -8,6 +8,7 @@ use App\Models\Report;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -27,8 +28,15 @@ class ReportReady extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $tenant = $this->report->tenant;
+        $fromAddress = config('mail.from.address');
+        $brandName = $tenant?->brandDisplayName() ?? config('mail.from.name');
+        $replyToAddress = $tenant?->reply_to_email ?: $tenant?->support_email;
+
         return new Envelope(
             subject: $this->customSubject ?? 'Your Report is Ready: '.$this->report->name,
+            from: $fromAddress ? new Address($fromAddress, $brandName) : null,
+            replyTo: $replyToAddress ? [new Address($replyToAddress, $brandName)] : [],
         );
     }
 
@@ -38,6 +46,7 @@ class ReportReady extends Mailable implements ShouldQueue
             view: 'emails.report-ready',
             with: [
                 'report' => $this->report,
+                'brandName' => $this->report->tenant?->brandDisplayName() ?? config('app.name'),
                 'customMessage' => $this->customMessage,
                 'downloadUrl' => route('api.v1.reports.download', [
                     'tenant' => $this->report->tenant_id,
