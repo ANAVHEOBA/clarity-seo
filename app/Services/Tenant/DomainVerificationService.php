@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tenant;
 
 use App\Models\Tenant;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -28,7 +29,10 @@ class DomainVerificationService
             'domain_verification_requested_at' => $tenant->domain_verification_requested_at?->toIso8601String(),
             'verification_path' => self::VERIFICATION_PATH,
             'verification_token' => $tenant->domain_verification_token,
-            'verification_target' => $this->publicVerificationUrl($tenant),
+            'verification_target' => $this->publicVerificationUrl(
+                $tenant,
+                $this->preferredPublicScheme($tenant, $context)
+            ),
             'local_testing_target' => $this->localTestingTarget($tenant, $context),
         ];
     }
@@ -60,10 +64,19 @@ class DomainVerificationService
 
         [$url, $headers] = $this->verificationAttempt($tenant, $context);
 
-        $response = Http::timeout(10)
-            ->withHeaders($headers)
-            ->accept('text/plain')
-            ->get($url);
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders($headers)
+                ->accept('text/plain')
+                ->get($url);
+        } catch (ConnectionException $exception) {
+            return [
+                'verified' => false,
+                'message' => 'Could not reach the domain. Please check DNS or hosting setup.',
+                'verification_target' => $url,
+                'error' => $exception->getMessage(),
+            ];
+        }
 
         $body = trim($response->body());
 
@@ -126,9 +139,11 @@ class DomainVerificationService
         }
     }
 
-    private function publicVerificationUrl(Tenant $tenant): string
+    private function publicVerificationUrl(Tenant $tenant, ?string $preferredScheme = null): string
     {
-        $scheme = app()->environment(['local', 'testing']) ? 'http' : 'https';
+        $scheme = in_array($preferredScheme, ['http', 'https'], true)
+            ? $preferredScheme
+            : (app()->environment(['local', 'testing']) ? 'http' : 'https');
 
         return $scheme.'://'.$tenant->custom_domain.self::VERIFICATION_PATH;
     }
@@ -138,7 +153,7 @@ class DomainVerificationService
      */
     private function localTestingTarget(Tenant $tenant, array $context): ?array
     {
-        if (! app()->environment(['local', 'testing'])) {
+        if (! $this->shouldUseLocalProxy($tenant, $context)) {
             return null;
         }
 
@@ -164,9 +179,16 @@ class DomainVerificationService
      */
     private function verificationAttempt(Tenant $tenant, array $context): array
     {
-        if (app()->environment(['local', 'testing'])) {
-            $baseHost = $context['verification_host'] ?? $context['request_host'] ?? null;
-            $basePort = $context['verification_port'] ?? $context['request_port'] ?? null;
+        if ($this->shouldUseLocalProxy($tenant, $context)) {
+            $usesExplicitVerificationHost = is_string($context['verification_host'] ?? null)
+                && ($context['verification_host'] ?? '') !== '';
+
+            $baseHost = $usesExplicitVerificationHost
+                ? $context['verification_host']
+                : ($context['request_host'] ?? null);
+            $basePort = $usesExplicitVerificationHost
+                ? ($context['verification_port'] ?? null)
+                : ($context['verification_port'] ?? $context['request_port'] ?? null);
             $baseScheme = $context['verification_scheme'] ?? $context['request_scheme'] ?? 'http';
 
             if ($baseHost) {
@@ -180,8 +202,48 @@ class DomainVerificationService
         }
 
         return [
-            $this->publicVerificationUrl($tenant),
+            $this->publicVerificationUrl($tenant, $this->preferredPublicScheme($tenant, $context)),
             [],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function preferredPublicScheme(Tenant $tenant, array $context): ?string
+    {
+        $requestHost = $context['request_host'] ?? null;
+
+        if (! is_string($requestHost) || strcasecmp($requestHost, (string) $tenant->custom_domain) !== 0) {
+            return null;
+        }
+
+        $scheme = $context['verification_scheme'] ?? $context['request_scheme'] ?? null;
+
+        return in_array($scheme, ['http', 'https'], true) ? $scheme : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function shouldUseLocalProxy(Tenant $tenant, array $context): bool
+    {
+        if (! app()->environment(['local', 'testing'])) {
+            return false;
+        }
+
+        $verificationHost = $context['verification_host'] ?? null;
+
+        if (is_string($verificationHost) && $verificationHost !== '') {
+            return true;
+        }
+
+        $requestHost = $context['request_host'] ?? null;
+
+        if (! is_string($requestHost) || $requestHost === '') {
+            return false;
+        }
+
+        return strcasecmp($requestHost, (string) $tenant->custom_domain) !== 0;
     }
 }

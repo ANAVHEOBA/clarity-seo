@@ -203,6 +203,91 @@ describe('Domain Verification', function () {
         expect($tenant->fresh()->hasVerifiedCustomDomain())->toBeTrue();
         expect($tenant->fresh()->domain_verification_token)->toBeNull();
     });
+
+    it('verifies a custom domain directly when the request is already on that domain', function () {
+        $user = User::factory()->create();
+        $tenant = Tenant::factory()
+            ->hasAttached($user, ['role' => 'owner'])
+            ->create([
+                'custom_domain' => 'custom.localmator.com',
+                'domain_verification_token' => 'verify-token-direct',
+                'domain_verification_requested_at' => now(),
+            ]);
+
+        Sanctum::actingAs($user);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            expect($request->url())->toBe('https://custom.localmator.com/.well-known/localmator-domain-verification.txt');
+
+            return Http::response('verify-token-direct', 200);
+        });
+
+        $response = $this->postJson('https://custom.localmator.com:8000/api/v1/tenants/'.$tenant->id.'/domain-verification/verify');
+
+        $response->assertOk()
+            ->assertJsonPath('verified', true)
+            ->assertJsonPath('verification_target', 'https://custom.localmator.com/.well-known/localmator-domain-verification.txt')
+            ->assertJsonPath('data.is_verified', true);
+
+        expect($tenant->fresh()->hasVerifiedCustomDomain())->toBeTrue();
+    });
+
+    it('returns a verification error when the custom domain cannot be reached', function () {
+        $user = User::factory()->create();
+        $tenant = Tenant::factory()
+            ->hasAttached($user, ['role' => 'owner'])
+            ->create([
+                'custom_domain' => 'unreachable.example.test',
+                'domain_verification_token' => 'verify-token-timeout',
+                'domain_verification_requested_at' => now(),
+            ]);
+
+        Sanctum::actingAs($user);
+
+        Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: Operation timed out');
+        });
+
+        $response = $this->postJson('http://127.0.0.1:8000/api/v1/tenants/'.$tenant->id.'/domain-verification/verify');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('verified', false)
+            ->assertJsonPath('message', 'Could not reach the domain. Please check DNS or hosting setup.')
+            ->assertJsonPath('verification_target', 'http://127.0.0.1:8000/.well-known/localmator-domain-verification.txt');
+
+        expect($tenant->fresh()->hasVerifiedCustomDomain())->toBeFalse();
+        expect($tenant->fresh()->domain_verification_token)->toBe('verify-token-timeout');
+    });
+
+    it('does not inherit the local request port when an explicit verification host is provided', function () {
+        $user = User::factory()->create();
+        $tenant = Tenant::factory()
+            ->hasAttached($user, ['role' => 'owner'])
+            ->create([
+                'custom_domain' => 'public-tunnel.example.test',
+                'domain_verification_token' => 'verify-token-ngrok',
+                'domain_verification_requested_at' => now(),
+            ]);
+
+        Sanctum::actingAs($user);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            expect($request->url())->toBe('https://public-tunnel.example.test/.well-known/localmator-domain-verification.txt');
+
+            return Http::response('verify-token-ngrok', 200);
+        });
+
+        $response = $this->postJson('http://127.0.0.1:8000/api/v1/tenants/'.$tenant->id.'/domain-verification/verify', [
+            'verification_host' => 'public-tunnel.example.test',
+            'verification_scheme' => 'https',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('verified', true)
+            ->assertJsonPath('verification_target', 'https://public-tunnel.example.test/.well-known/localmator-domain-verification.txt');
+
+        expect($tenant->fresh()->hasVerifiedCustomDomain())->toBeTrue();
+    });
 });
 
 describe('Branded Portal Auth', function () {
